@@ -14,6 +14,6 @@
  * @since 15/10/2019
  */
 module org.chocosolver.sat {
-    requires trove4j;
+    requires it.unimi.dsi.fastutil;
     exports org.chocosolver.sat to org.chocosolver.solver;
 }

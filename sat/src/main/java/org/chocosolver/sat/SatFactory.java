@@ -9,8 +9,8 @@
  */
 package org.chocosolver.sat;
 
-import gnu.trove.list.TIntList;
-import gnu.trove.list.array.TIntArrayList;
+
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import static org.chocosolver.sat.SatSolver.makeLiteral;
 import static org.chocosolver.sat.SatSolver.negated;
@@ -33,7 +33,7 @@ public interface SatFactory {
      * @return true if the clause has been added to the clause store
      */
     default boolean addClause(int[] POSVARS, int[] NEGVARS) {
-        TIntList lits = new TIntArrayList(POSVARS.length + NEGVARS.length);
+        IntArrayList lits = new IntArrayList(POSVARS.length + NEGVARS.length);
         for(int p : POSVARS){
             lits.add(makeLiteral(p, true));
         }
@@ -130,7 +130,7 @@ public interface SatFactory {
      */
     default boolean addBoolOrArrayEqVar(int[] BOOLVARS, int TARGET) {
         int target_lit = makeLiteral(TARGET, true);
-        TIntList lits = new TIntArrayList(BOOLVARS.length + 1);
+        IntArrayList lits = new IntArrayList(BOOLVARS.length + 1);
         for (int i = 0; i < BOOLVARS.length; i++) {
             lits.add(makeLiteral(BOOLVARS[i], true));
         }
@@ -152,7 +152,7 @@ public interface SatFactory {
      */
     default boolean addBoolAndArrayEqVar(int[] BOOLVARS, int TARGET) {
         int target_lit = makeLiteral(TARGET, true);
-        TIntList lits = new TIntArrayList(BOOLVARS.length + 1);
+        IntArrayList lits = new IntArrayList(BOOLVARS.length + 1);
         for (int i = 0; i < BOOLVARS.length; i++) {
             lits.add(makeLiteral(BOOLVARS[i], false));
         }
@@ -208,6 +208,7 @@ public interface SatFactory {
      * @param TARGET the reified boolean variable
      * @return true if the clause has been added to the clause store
      */
+    @SuppressWarnings("UnusedReturnValue")
     default boolean addBoolXorEqVar(int LEFT, int RIGHT, int TARGET) {
         return addBoolIsNeqVar(LEFT, RIGHT, TARGET);
     }
@@ -295,7 +296,7 @@ public interface SatFactory {
      * @return true if the clause has been added to the clause store
      */
     default boolean addBoolOrArrayEqualTrue(int... BOOLVARS) {
-        TIntList lits = new TIntArrayList(BOOLVARS.length);
+        IntArrayList lits = new IntArrayList(BOOLVARS.length);
         for (int i = 0; i < BOOLVARS.length; i++) {
             lits.add(makeLiteral(BOOLVARS[i], true));
         }
@@ -308,6 +309,7 @@ public interface SatFactory {
      * @param BOOLVARS a list of boolean variables
      * @return true if the clause has been added to the clause store
      */
+    @SuppressWarnings("UnusedReturnValue")
     default boolean addBoolAndArrayEqualFalse(int... BOOLVARS) {
         return addAtMostNMinusOne(BOOLVARS);
     }
@@ -319,14 +321,14 @@ public interface SatFactory {
      * @return true if the clause has been added to the clause store
      */
     default boolean addAtMostOne(int... BOOLVARS) {
-        TIntList lits = new TIntArrayList(BOOLVARS.length);
+        IntArrayList lits = new IntArrayList(BOOLVARS.length);
         for (int i = 0; i < BOOLVARS.length; i++) {
             lits.add(SatSolver.negated(makeLiteral(BOOLVARS[i], true)));
         }
         boolean add = true;
         for (int i = 0; i < lits.size() - 1; i++) {
             for (int j = i + 1; j < lits.size(); ++j) {
-                add &= _me().addClause(lits.get(i), lits.get(j));
+                add &= _me().addClause(lits.getInt(i), lits.getInt(j));
             }
         }
         return add;
@@ -339,7 +341,7 @@ public interface SatFactory {
      * @return true if the clause has been added to the clause store
      */
     default boolean addAtMostNMinusOne(int... BOOLVARS) {
-        TIntList lits = new TIntArrayList(BOOLVARS.length);
+        IntArrayList lits = new IntArrayList(BOOLVARS.length);
         for (int i = 0; i < BOOLVARS.length; i++) {
             lits.add(makeLiteral(BOOLVARS[i], false));
         }
@@ -354,7 +356,7 @@ public interface SatFactory {
      * @return true if the clause has been added to the clause store
      */
     default boolean addSumBoolArrayGreaterEqVar(int[] BOOLVARS, int TARGET) {
-        TIntList lits = new TIntArrayList(BOOLVARS.length + 1);
+        IntArrayList lits = new IntArrayList(BOOLVARS.length + 1);
         for (int i = 0; i < BOOLVARS.length; ++i) {
             lits.add(makeLiteral(BOOLVARS[i], true));
         }
@@ -375,7 +377,7 @@ public interface SatFactory {
         for (int i = 0; i < BOOLVARS.length; ++i) {
             add &= _me().addClause(makeLiteral(BOOLVARS[i], false), tlit);
         }
-        return true;
+        return add;
     }
 
     /**
@@ -392,7 +394,7 @@ public interface SatFactory {
         int extra = _me().newVariable();
         int tlit = makeLiteral(TARGET, true);
         int elit = makeLiteral(extra, true);
-        TIntList lits = new TIntArrayList(BOOLVARS.length + 1);
+        IntArrayList lits = new IntArrayList(BOOLVARS.length + 1);
         for (int i = 0; i < BOOLVARS.length; ++i) {
             lits.add(makeLiteral(BOOLVARS[i], true));
         }

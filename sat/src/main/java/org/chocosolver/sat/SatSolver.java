@@ -9,9 +9,7 @@
  */
 package org.chocosolver.sat;
 
-import gnu.trove.list.TIntList;
-import gnu.trove.list.array.TIntArrayList;
-import gnu.trove.map.hash.TIntObjectHashMap;
+import it.unimi.dsi.fastutil.ints.*;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -43,23 +41,23 @@ public class SatSolver implements SatFactory {
     public ArrayList<Clause> learnts;
     // 'watches_[lit]' is a list of constraints watching 'lit'(will go
     // there if literal becomes true).
-    private TIntObjectHashMap<ArrayList<Watcher>> watches_;
+    private final Int2ObjectMap<ArrayList<Watcher>> watches_;
     // implies_[lit] is a list of literals to set to true if 'lit' becomes true.
-    public TIntObjectHashMap<TIntArrayList> implies_;
+    public Int2ObjectMap<IntArrayList> implies_;
     // The current assignments.
-    TIntObjectHashMap<Boolean> assignment_;
+    Int2ObjectMap<Boolean> assignment_;
     // Assignment stack; stores all assigments made in the order they
     // were made.
-    TIntArrayList trail_;
+    IntArrayList trail_;
     // Separator indices for different decision levels in 'trail_'.
-    TIntArrayList trail_markers_;
+    IntArrayList trail_markers_;
     // Head of queue(as index into the trail_.
     int qhead_;
     // Number of variables
     int num_vars_;
 
-    private TIntArrayList temporary_add_vector_;
-    public TIntArrayList touched_variables_;
+    private final IntArrayList temporary_add_vector_;
+    public IntArrayList touched_variables_;
 
 
     public SatSolver() {
@@ -68,13 +66,13 @@ public class SatSolver implements SatFactory {
         num_vars_ = 0;
         this.clauses = new ArrayList<>();
         this.learnts = new ArrayList<>();
-        this.watches_ = new TIntObjectHashMap<>();
-        this.implies_ = new TIntObjectHashMap<>();
-        this.assignment_ = new TIntObjectHashMap<>();
-        this.trail_ = new TIntArrayList();
-        this.trail_markers_ = new TIntArrayList();
-        this.temporary_add_vector_ = new TIntArrayList();
-        this.touched_variables_ = new TIntArrayList();
+        this.watches_ = new Int2ObjectArrayMap<>();
+        this.implies_ = new Int2ObjectArrayMap<>();
+        this.assignment_ = new Int2ObjectOpenHashMap<>();
+        this.trail_ = new IntArrayList();
+        this.trail_markers_ = new IntArrayList();
+        this.temporary_add_vector_ = new IntArrayList();
+        this.touched_variables_ = new IntArrayList();
     }
 
     @Override
@@ -93,24 +91,24 @@ public class SatSolver implements SatFactory {
 
 
     // Add a clause to the solver.
-    public boolean addClause(TIntList ps) {
+    public boolean addClause(IntArrayList  ps) {
         assert 0 == trailMarker();
         if (!ok_) return false;
 
         // Check if clause is satisfied and remove false/duplicated literals:
-        ps.sort();
+        ps.sort((i, j) -> i - j);
         int lit = kUndefinedLiteral;
         int j = 0;
         for (int i = 0; i < ps.size(); i++) {
-            if (valueLit(ps.get(i)) == Boolean.kTrue || ps.get(i) == negated(lit)) {
+            if (valueLit(ps.getInt(i)) == Boolean.kTrue || ps.getInt(i) == negated(lit)) {
                 return true;
-            } else if (valueLit(ps.get(i)) != Boolean.kFalse && ps.get(i) != lit) {
-                lit = ps.get(i);
+            } else if (valueLit(ps.getInt(i)) != Boolean.kFalse && ps.getInt(i) != lit) {
+                lit = ps.getInt(i);
                 ps.set(j++, lit);
             }
         }
         if (j < ps.size()) {
-            ps.remove(j, ps.size() - j);
+            ps.removeElements(j, ps.size());
         }
 
 
@@ -118,27 +116,27 @@ public class SatSolver implements SatFactory {
             case 0:
                 return (ok_ = false);
             case 1:
-                uncheckedEnqueue(ps.get(0));
+                uncheckedEnqueue(ps.getInt(0));
                 return (ok_ = propagate());
             case 2:
-                int l0 = ps.get(0);
-                int l1 = ps.get(1);
-                TIntArrayList i0 = implies_.get(negated(l0));
+                int l0 = ps.getInt(0);
+                int l1 = ps.getInt(1);
+                IntArrayList i0 = implies_.get(negated(l0));
                 if (i0 == null) {
-                    i0 = new TIntArrayList();
+                    i0 = new IntArrayList();
                     implies_.put(negated(l0), i0);
                 }
                 i0.add(l1);
 
-                TIntArrayList i1 = implies_.get(negated(l1));
+                IntArrayList i1 = implies_.get(negated(l1));
                 if (i1 == null) {
-                    i1 = new TIntArrayList();
+                    i1 = new IntArrayList();
                     implies_.put(negated(l1), i1);
                 }
                 i1.add(l0);
                 break;
             default:
-                Clause cr = new Clause(ps.toArray());
+                Clause cr = new Clause(ps.elements());
                 clauses.add(cr);
                 attachClause(cr);
                 break;
@@ -171,20 +169,20 @@ public class SatSolver implements SatFactory {
 
     // Add the empty clause, making the solver contradictory.
     boolean addEmptyClause() {
-        temporary_add_vector_.resetQuick();
+        temporary_add_vector_.clear();
         return addClause(temporary_add_vector_);
     }
 
     // Add a unit clause to the solver.
     public boolean addClause(int l) {
-        temporary_add_vector_.resetQuick();
+        temporary_add_vector_.clear();
         temporary_add_vector_.add(l);
         return addClause(temporary_add_vector_);
     }
 
     // Add a binary clause to the solver.
     boolean addClause(int p, int q) {
-        temporary_add_vector_.resetQuick();
+        temporary_add_vector_.clear();
         temporary_add_vector_.add(p);
         temporary_add_vector_.add(q);
         return addClause(temporary_add_vector_);
@@ -192,7 +190,7 @@ public class SatSolver implements SatFactory {
 
     // Add a ternary clause to the solver.
     boolean addClause(int p, int q, int r) {
-        temporary_add_vector_.resetQuick();
+        temporary_add_vector_.clear();
         temporary_add_vector_.add(p);
         temporary_add_vector_.add(q);
         temporary_add_vector_.add(r);
@@ -201,20 +199,20 @@ public class SatSolver implements SatFactory {
 
     // Incremental propagation.
     boolean initPropagator() {
-        touched_variables_.resetQuick();
+        touched_variables_.clear();
         return !ok_;
     }
 
     // Backtrack until a certain level.
     public void cancelUntil(int level) {
         if (trailMarker() > level) {
-            for (int c = trail_.size() - 1; c >= trail_markers_.get(level); c--) {
-                int x = var(trail_.get(c));
+            for (int c = trail_.size() - 1; c >= trail_markers_.getInt(level); c--) {
+                int x = var(trail_.getInt(c));
                 assignment_.put(x, Boolean.kUndefined);
             }
-            qhead_ = trail_markers_.get(level);
-            trail_.remove(trail_markers_.get(level), trail_.size() - trail_markers_.get(level));
-            trail_markers_.remove(level, trail_markers_.size() - level);
+            qhead_ = trail_markers_.getInt(level);
+            trail_.removeElements(trail_markers_.getInt(level), trail_.size());
+            trail_markers_.removeElements(level, trail_markers_.size());
         }
     }
 
@@ -235,6 +233,7 @@ public class SatSolver implements SatFactory {
     }
 
     // The current number of original clauses.
+    @SuppressWarnings("unused")
     int nClauses() {
         return clauses.size();
     }
@@ -248,7 +247,7 @@ public class SatSolver implements SatFactory {
     // of failure.
     public boolean propagateOneLiteral(int lit) {
         assert ok_;
-        touched_variables_.resetQuick();
+        touched_variables_.clear();
         if (!propagate()) {
             return false;
         }
@@ -343,7 +342,7 @@ public class SatSolver implements SatFactory {
     boolean propagate() {
         boolean result = true;
         while (qhead_ < trail_.size()) {
-            int p = trail_.get(qhead_++);
+            int p = trail_.getInt(qhead_++);
             // Propagate the implies first.
             if(!propagateImplies(p)){
                 return false;
@@ -428,11 +427,11 @@ public class SatSolver implements SatFactory {
     }
 
     private boolean propagateImplies(int p) {
-        TIntList to_add = implies_.get(p);
+        IntList to_add = implies_.get(p);
         if (to_add != null) {
             for (int i = 0; i < to_add.size(); ++i) {
-                if (!enqueue(to_add.get(i))) {
-                    touched_variables_.add(to_add.get(i));
+                if (!enqueue(to_add.getInt(i))) {
+                    touched_variables_.add(to_add.getInt(i));
                     return false;
                 }
             }
@@ -501,7 +500,7 @@ public class SatSolver implements SatFactory {
      * @since 12/07/13
      */
     public static class Clause {
-        private int[] literals_;
+        private final int[] literals_;
 
         Clause(int[] ps) {
             literals_ = ps.clone();
@@ -515,10 +514,11 @@ public class SatSolver implements SatFactory {
             return literals_[i];
         }
 
-        int _s(int pos, int l) {
-            return literals_[pos] = l;
+        void _s(int pos, int l) {
+            literals_[pos] = l;
         }
 
+        @SuppressWarnings("unused")
         int pos(int l) {
             int i = literals_.length - 1;
             while (i >= 0 && literals_[i] != l) {
@@ -588,24 +588,24 @@ public class SatSolver implements SatFactory {
         this.ok_ = o.ok_;
         this.qhead_ = o.qhead_;
         this.num_vars_ = o.num_vars_;
-        this.trail_.resetQuick();
+        this.trail_.clear();
         this.trail_.addAll(o.trail_);
-        this.trail_markers_.resetQuick();
+        this.trail_markers_.clear();
         this.trail_markers_.addAll(o.trail_markers_);
-        this.touched_variables_.resetQuick();
+        this.touched_variables_.clear();
         this.touched_variables_.addAll(o.touched_variables_);
-        this.temporary_add_vector_.resetQuick();
+        this.temporary_add_vector_.clear();
         this.temporary_add_vector_.addAll(o.temporary_add_vector_);
-        for (int k : o.assignment_.keys()) {
+        for (int k : o.assignment_.keySet()) {
             this.assignment_.putIfAbsent(k, o.assignment_.get(k));
         }
-        for (int k : o.implies_.keys()) {
-            TIntArrayList tl = this.implies_.get(k);
+        for (int k : o.implies_.keySet()) {
+            IntArrayList tl = this.implies_.get(k);
             if(tl == null){
-                tl = new TIntArrayList();
+                tl = new IntArrayList();
                 this.implies_.put(k, tl);
             }else{
-                tl.resetQuick();
+                tl.clear();
             }
             tl.addAll(o.implies_.get(k));
         }
@@ -623,7 +623,7 @@ public class SatSolver implements SatFactory {
             this.learnts.add(_cl);
         }
         this.watches_.clear();
-        for (int k : o.watches_.keys()) {
+        for (int k : o.watches_.keySet()) {
             ArrayList<Watcher> ws = o.watches_.get(k);
             ArrayList<Watcher> _ws = new ArrayList<>(ws.size());
             for (Watcher w : ws) {
