@@ -9,8 +9,9 @@
  */
 package org.chocosolver.parser.flatzinc.ast;
 
-import gnu.trove.list.array.TIntArrayList;
-import gnu.trove.set.hash.TIntHashSet;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
+import it.unimi.dsi.fastutil.ints.IntSet;
 import org.chocosolver.parser.flatzinc.FznSettings;
 import org.chocosolver.parser.flatzinc.ast.expression.EAnnotation;
 import org.chocosolver.parser.flatzinc.ast.expression.ESetBounds;
@@ -45,17 +46,14 @@ public enum FConstraint {
         public void build(Model model, Datas datas, String id, List<Expression> exps, List<EAnnotation> annotations) {
             BoolVar[] as = exps.get(0).toBoolVarArray(model);
             BoolVar r = exps.get(1).boolVarValue(model);
-            switch (as.length) {
-                case 0:
-                    r.eq(1).post();
-                    break;
-                default:
-                    if (r.isInstantiatedTo(0)) {
-                        model.addClausesBoolAndArrayEqualFalse(as);
-                    } else {
-                        model.addClausesBoolAndArrayEqVar(as, r);
-                    }
-                    break;
+            if (as.length == 0) {
+                r.eq(1).post();
+            } else {
+                if (r.isInstantiatedTo(0)) {
+                    model.addClausesBoolAndArrayEqualFalse(as);
+                } else {
+                    model.addClausesBoolAndArrayEqVar(as, r);
+                }
             }
         }
     },
@@ -77,17 +75,14 @@ public enum FConstraint {
             BoolVar[] as = exps.get(0).toBoolVarArray(model);
             BoolVar r = exps.get(1).boolVarValue(model);
 
-            switch (as.length) {
-                case 0:
-                    r.eq(1).post();
-                    break;
-                default:
-                    if (r.isInstantiatedTo(1)) {
-                        model.addClausesBoolOrArrayEqualTrue(as);
-                    } else {
-                        model.addClausesBoolOrArrayEqVar(as, r);
-                    }
-                    break;
+            if (as.length == 0) {
+                r.eq(1).post();
+            } else {
+                if (r.isInstantiatedTo(1)) {
+                    model.addClausesBoolOrArrayEqualTrue(as);
+                } else {
+                    model.addClausesBoolOrArrayEqVar(as, r);
+                }
             }
 
         }
@@ -903,7 +898,7 @@ public enum FConstraint {
                     BoolVar[][] b1 = new BoolVar[n][];
                     BoolVar[][] b2 = new BoolVar[n][];
                     for (int i = 0; i < n; i++) {
-                        TIntArrayList sumC = new TIntArrayList();
+                        IntArrayList sumC = new IntArrayList();
                         ArrayList<IntVar> sumV = new ArrayList<>();
                         b[i] = new BoolVar[n - 1];
                         b1[i] = new BoolVar[n - 1];
@@ -969,8 +964,8 @@ public enum FConstraint {
                             }
                         }
                         model.scalar(
-                                sumV.toArray(new IntVar[sumV.size()]),
-                                sumC.toArray(),
+                                sumV.toArray(new IntVar[0]),
+                                sumC.toIntArray(),
                                 "<=",
                                 -resources[i].getValue() + limit.getValue()).post();
                     }
@@ -1162,7 +1157,7 @@ public enum FConstraint {
             if (eqs.size() == 0) {
                 model.arithm(b, "=", 0).post();
             } else {
-                model.addClausesBoolOrArrayEqVar(eqs.toArray(new BoolVar[eqs.size()]), b);
+                model.addClausesBoolOrArrayEqVar(eqs.toArray(new BoolVar[0]), b);
             }
         }
     },
@@ -1403,14 +1398,14 @@ public enum FConstraint {
             SetVar ab = model.setVar(model.generateName(), a.getLB().toArray(), a.getUB().toArray());
             SetVar ba = model.setVar(model.generateName(), b.getLB().toArray(), b.getUB().toArray());
 
-            TIntHashSet values = new TIntHashSet();
+            IntSet values = new IntOpenHashSet();
             for (int i : a.getUB()) {
                 values.add(i);
             }
             for (int i : b.getUB()) {
                 values.add(i);
             }
-            int[] env = values.toArray();
+            int[] env = values.toIntArray();
             Arrays.sort(env);
             SetVar c = model.setVar(model.generateName(), new int[]{}, env);
             IntVar min = model.intVar(model.generateName(), env[0], env[env.length - 1]);
@@ -1438,14 +1433,14 @@ public enum FConstraint {
             SetVar ab = model.setVar(model.generateName(), a.getLB().toArray(), a.getUB().toArray());
             SetVar ba = model.setVar(model.generateName(), b.getLB().toArray(), b.getUB().toArray());
 
-            TIntHashSet values = new TIntHashSet();
+            IntSet values = new IntOpenHashSet();
             for (int i : a.getUB()) {
                 values.add(i);
             }
             for (int i : b.getUB()) {
                 values.add(i);
             }
-            int[] env = values.toArray();
+            int[] env = values.toIntArray();
             Arrays.sort(env);
             SetVar c = model.setVar(model.generateName(), new int[]{}, env);
             IntVar min = model.intVar(model.generateName(), env[0], env[env.length - 1]);

@@ -9,7 +9,6 @@
  */
 package org.chocosolver.parser;
 
-import gnu.trove.set.hash.THashSet;
 import org.chocosolver.solver.*;
 import org.chocosolver.solver.learn.XParameters;
 import org.chocosolver.solver.search.loop.move.MoveBinaryDFS;
@@ -25,9 +24,7 @@ import org.kohsuke.args4j.Option;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
 /**
  * A regular parser with default and common services
@@ -179,12 +176,13 @@ public abstract class RegParser implements IParser {
         listeners.add(listener);
     }
 
+    @SuppressWarnings("unused")
     public final void removeListener(ParserListener listener) {
         listeners.remove(listener);
     }
 
     @Override
-    public final boolean setUp(String... args) throws SetUpException {
+    public final boolean setUp(String... args) {
         listeners.forEach(ParserListener::beforeParsingParameters);
         if(PRINT_LOG)System.out.printf("%s %s\n", getCommentChar(), Arrays.toString(args));
         CmdLineParser cmdparser = new CmdLineParser(this);
@@ -196,7 +194,7 @@ public abstract class RegParser implements IParser {
             cmdparser.printUsage(System.err);
             return false;
         }
-        cmdparser.getArguments();
+        //cmdparser.getArguments();
         listeners.forEach(ParserListener::afterParsingParameters);
         defaultSettings = createDefaultSettings();
         if (settingsFile != null) {
@@ -221,8 +219,7 @@ public abstract class RegParser implements IParser {
         Solver solver = m.getSolver();
         if (solver.getSearch() != null) {
             IntVar[] ovars = new IntVar[m.getNbVars()];
-            THashSet<Variable> dvars = new THashSet<>();
-            dvars.addAll(Arrays.asList(solver.getSearch().getVariables()));
+            Set<Variable> dvars = new HashSet<>(Arrays.asList(solver.getSearch().getVariables()));
             int k = 0;
             for (IntVar iv : m.retrieveIntVars(true)) {
                 if (!dvars.contains(iv)) {

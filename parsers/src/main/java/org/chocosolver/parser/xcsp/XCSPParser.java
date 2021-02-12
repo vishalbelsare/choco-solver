@@ -9,8 +9,10 @@
  */
 package org.chocosolver.parser.xcsp;
 
-import gnu.trove.map.hash.TIntObjectHashMap;
-import gnu.trove.map.hash.TObjectIntHashMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import org.chocosolver.parser.ParserException;
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.constraints.extension.Tuples;
@@ -66,8 +68,8 @@ public class XCSPParser implements XCallbacks2 {
      */
     protected HashMap<XVariables.XVar, IntVar> mvars;
     protected HashSet<IntVar> symbolics;
-    protected TObjectIntHashMap<String> symbolToInt;
-    protected TIntObjectHashMap<String> intToSymbol;
+    protected Object2IntMap<String> symbolToInt;
+    protected Int2ObjectMap<String> intToSymbol;
     protected int unusedSymbol = 0;
     private ArrayList<IntVar> ovars;
     /**
@@ -81,8 +83,8 @@ public class XCSPParser implements XCallbacks2 {
         this.model = model;
         this.mvars = new HashMap<>();
         this.symbolics = new HashSet<>();
-        this.symbolToInt = new TObjectIntHashMap<>();
-        this.intToSymbol = new TIntObjectHashMap<>();
+        this.symbolToInt = new Object2IntOpenHashMap<>();
+        this.intToSymbol = new Int2ObjectOpenHashMap<>();
         this.implem = new Implem(this);
         File file = new File(instance);
         if(file.exists()){
@@ -111,8 +113,8 @@ public class XCSPParser implements XCallbacks2 {
         int[] domain = new int[values.length];
         for (int i = 0; i < values.length; i++) {
             int value;
-            if (symbolToInt.contains(values[i])) {
-                value = symbolToInt.get(values[i]);
+            if (symbolToInt.containsKey(values[i])) {
+                value = symbolToInt.getInt(values[i]);
             } else {
                 value = unusedSymbol++;
                 symbolToInt.put(values[i], value);
@@ -198,7 +200,7 @@ public class XCSPParser implements XCallbacks2 {
         if (type == Types.TypeExpr.VAR) {
             return var(node.var(0));
         } else if (type == Types.TypeExpr.SYMBOL) {
-            return model.intVar(symbolToInt.get(node.toString()));
+            return model.intVar(symbolToInt.getInt(node.toString()));
         } else if (type == Types.TypeExpr.LONG) {
             return model.intVar(node.val(0));
         }
@@ -360,9 +362,9 @@ public class XCSPParser implements XCallbacks2 {
             // do you have to clean the tuples, so as to remove those that cannot be built from variable domains ?
         }
         if (positive) {
-            model.member(var(x), Arrays.stream(values).mapToInt(t -> symbolToInt.get(t)).toArray()).post();
+            model.member(var(x), Arrays.stream(values).mapToInt(t -> symbolToInt.getInt(t)).toArray()).post();
         } else {
-            model.notMember(var(x), Arrays.stream(values).mapToInt(t -> symbolToInt.get(t)).toArray()).post();
+            model.notMember(var(x), Arrays.stream(values).mapToInt(t -> symbolToInt.getInt(t)).toArray()).post();
         }
     }
 
@@ -373,7 +375,7 @@ public class XCSPParser implements XCallbacks2 {
             // do you have to clean the tuples, so as to remove those that cannot be built from variable domains ?
         }
         Tuples mTuples = new Tuples(Arrays.stream(tuples)
-                .map(t -> Arrays.stream(t).mapToInt(e -> symbolToInt.get(e)).toArray())
+                .map(t -> Arrays.stream(t).mapToInt(e -> symbolToInt.getInt(e)).toArray())
                 .toArray(int[][]::new), positive);
         if (flags.contains(Types.TypeFlag.STARRED_TUPLES)) {
             if (!positive) {
@@ -890,17 +892,15 @@ public class XCSPParser implements XCallbacks2 {
             }
         } else if (condition instanceof Condition.ConditionSet) {
             Condition.ConditionSet conditionSet = (Condition.ConditionSet) condition;
-            switch (conditionSet.operator) {
-                case IN: {
-                    IntVar intvl;
-                    if (condition instanceof Condition.ConditionIntvl) {
-                        intvl = model.intVar((int) ((Condition.ConditionIntvl) condition).min, (int) ((Condition.ConditionIntvl) condition).max);
-                    } else {
-                        intvl = condV(condition);
-                    }
-                    model.among(intvl, vars(list), values).post();
-                    return;
+            if (conditionSet.operator == Types.TypeConditionOperatorSet.IN) {
+                IntVar intvl;
+                if (condition instanceof Condition.ConditionIntvl) {
+                    intvl = model.intVar((int) ((Condition.ConditionIntvl) condition).min, (int) ((Condition.ConditionIntvl) condition).max);
+                } else {
+                    intvl = condV(condition);
                 }
+                model.among(intvl, vars(list), values).post();
+                return;
             }
         }
         // falling case
@@ -956,23 +956,23 @@ public class XCSPParser implements XCallbacks2 {
     @Override
     public void buildCtrRegular(String id, XVariables.XVarInteger[] list, Object[][] transitions, String startState, String[] finalStates) {
         FiniteAutomaton auto = new FiniteAutomaton();
-        TObjectIntHashMap<String> s2s = new TObjectIntHashMap<>(16, 1.5f, -1);
+        Object2IntMap<String> s2s = new Object2IntOpenHashMap<>();
         for (Object[] tr : transitions) {
-            int f = s2s.get(tr[0]);
+            int f = s2s.getInt(tr[0]);
             int v = ((Long)tr[1]).intValue();
             if (f == -1) {
                 f = auto.addState();
                 s2s.put((String) tr[0], f);
             }
-            int t = s2s.get(tr[2]);
+            int t = s2s.getInt(tr[2]);
             if (t == -1) {
                 t = auto.addState();
                 s2s.put((String) tr[2], t);
             }
             auto.addTransition(f, t, v);
         }
-        auto.setInitialState(s2s.get(startState));
-        auto.setFinal(Arrays.stream(finalStates).mapToInt(s2s::get).toArray());
+        auto.setInitialState(s2s.getInt(startState));
+        auto.setFinal(Arrays.stream(finalStates).mapToInt(s2s::getInt).toArray());
         model.regular(vars(list), auto).post();
     }
 
@@ -991,19 +991,15 @@ public class XCSPParser implements XCallbacks2 {
             if (!notWells.contains(tgt)){
                 possibleWells.add(tgt);
             }
-            if (possibleRoots.contains(tgt)){
-                possibleRoots.remove(tgt);
-            }
-            if (possibleWells.contains(src)){
-                possibleWells.remove(src);
-            }
+            possibleRoots.remove(tgt);
+            possibleWells.remove(src);
             List<Object[]> succs = layers.computeIfAbsent(src, k -> new ArrayList<>());
             succs.add(transitions[t]);
         }
 
         String first = possibleRoots.toArray(new String[1])[0];
         String last =possibleWells.toArray(new String[1])[0];
-        TObjectIntHashMap<String> map = new TObjectIntHashMap<>();
+        Object2IntMap<String> map = new Object2IntOpenHashMap<>();
         map.put(first, 0);
         map.put(last, -1);
         possibleRoots.add(last);
@@ -1024,7 +1020,7 @@ public class XCSPParser implements XCallbacks2 {
                     possibleRoots.add(tgt);
                     map.put(tgt, n++);
                 }
-                mtransitions[k++] = new int[]{map.get(src), ((Long) t[1]).intValue(),map.get(tgt)};
+                mtransitions[k++] = new int[]{map.getInt(src), ((Long) t[1]).intValue(),map.getInt(tgt)};
             }
         }
         IntVar[] mVars = vars(list);
@@ -1054,6 +1050,7 @@ public class XCSPParser implements XCallbacks2 {
         buildMin(vars(trees), condition);
     }
 
+    @SuppressWarnings("OptionalGetWithoutIsPresent")
     private void buildMin(IntVar[] vars, Condition condition) {
         int min = Arrays.stream(vars).min(Comparator.comparingInt(IntVar::getLB)).get().getLB();
         int max = Arrays.stream(vars).max(Comparator.comparingInt(IntVar::getUB)).get().getUB();
@@ -1180,6 +1177,7 @@ public class XCSPParser implements XCallbacks2 {
         buildMax(vars(trees), condition);
     }
 
+    @SuppressWarnings("OptionalGetWithoutIsPresent")
     private void buildMax(IntVar[] vars, Condition condition) {
         int min = Arrays.stream(vars).min(Comparator.comparingInt(IntVar::getLB)).get().getLB();
         int max = Arrays.stream(vars).max(Comparator.comparingInt(IntVar::getUB)).get().getUB();

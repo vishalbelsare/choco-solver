@@ -20,7 +20,7 @@ module org.chocosolver.parsers {
     requires args4j;
     requires java.sql;
     requires org.antlr.antlr4.runtime;
-    requires trove4j;
+    requires it.unimi.dsi.fastutil;
 
     opens org.chocosolver.parser to args4j, testng;
     opens org.chocosolver.parser.mps to args4j;

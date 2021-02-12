@@ -9,7 +9,7 @@
  */
 package org.chocosolver.parser.flatzinc.ast;
 
-import gnu.trove.map.hash.THashMap;
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import org.chocosolver.parser.Exit;
 import org.chocosolver.parser.flatzinc.ast.declaration.DArray;
 import org.chocosolver.parser.flatzinc.ast.declaration.Declaration;
@@ -43,7 +43,7 @@ public class Datas {
     // VARIABLES
     //***********************************************************************************
 
-    private final THashMap<String, Object> map;
+    private final Object2ObjectOpenHashMap<String, Object> map;
     private final List<String> output_names;
     private final List<Declaration.DType> output_types;
     private final List<Variable> output_vars;
@@ -54,7 +54,7 @@ public class Datas {
     private boolean printAll;
     private boolean printStat;
     private int nbSolution;
-    private StringBuilder stringBuilder = new StringBuilder();
+    private final StringBuilder stringBuilder = new StringBuilder();
 
     private Model model;
     private Solution solution;
@@ -64,7 +64,7 @@ public class Datas {
     //***********************************************************************************
 
     public Datas() {
-        this.map = new THashMap<>();
+        this.map = new Object2ObjectOpenHashMap<>();
         output_vars = new ArrayList<>();
         output_names = new ArrayList<>();
         output_types = new ArrayList<>();
