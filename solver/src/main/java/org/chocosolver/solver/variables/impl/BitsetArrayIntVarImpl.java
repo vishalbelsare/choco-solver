@@ -9,7 +9,8 @@
  */
 package org.chocosolver.solver.variables.impl;
 
-import gnu.trove.map.hash.TIntIntHashMap;
+import it.unimi.dsi.fastutil.ints.Int2IntMap;
+import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
 import org.chocosolver.memory.IEnvironment;
 import org.chocosolver.memory.IStateBitSet;
 import org.chocosolver.memory.IStateInt;
@@ -56,7 +57,7 @@ public final class BitsetArrayIntVarImpl extends AbstractVariable implements Int
     /**
      * Value to index in {@link #VALUES} mapping
      */
-    private final TIntIntHashMap V2I;
+    private final Int2IntMap V2I;
     /**
      * Indices of valid values
      */
@@ -119,7 +120,8 @@ public final class BitsetArrayIntVarImpl extends AbstractVariable implements Int
         IEnvironment env = this.model.getEnvironment();
         this.LENGTH = sortedValues.length;
         this.VALUES = sortedValues.clone();
-        this.V2I = new TIntIntHashMap(VALUES.length, .5f, Integer.MIN_VALUE, -1);
+        this.V2I = new Int2IntOpenHashMap(VALUES.length);
+        this.V2I.defaultReturnValue(-1);
         this.INDICES = env.makeBitSet(LENGTH);
         this.INDICES.set(0, LENGTH);
         for (int i = 0; i < VALUES.length; i++) {
@@ -752,7 +754,6 @@ public final class BitsetArrayIntVarImpl extends AbstractVariable implements Int
         }
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public IIntDeltaMonitor monitorDelta(ICause propagator) {
         createDelta();
@@ -767,7 +768,7 @@ public final class BitsetArrayIntVarImpl extends AbstractVariable implements Int
     }
 
     @Override
-    protected EvtScheduler createScheduler() {
+    protected EvtScheduler<IntEventType> createScheduler() {
         return new IntEvtScheduler();
     }
 
@@ -912,6 +913,7 @@ public final class BitsetArrayIntVarImpl extends AbstractVariable implements Int
         return _riterator;
     }
 
+    @SuppressWarnings("NullableProblems")
     @Override
     public Iterator<Integer> iterator() {
         if (_javaIterator == null) {

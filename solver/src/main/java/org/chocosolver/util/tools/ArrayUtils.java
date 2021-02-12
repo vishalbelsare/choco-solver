@@ -9,18 +9,13 @@
  */
 package org.chocosolver.util.tools;
 
-import static java.lang.reflect.Array.newInstance;
-
-import gnu.trove.list.array.TIntArrayList;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Random;
-import java.util.Set;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 import org.chocosolver.solver.variables.BoolVar;
 import org.chocosolver.solver.variables.IntVar;
+
+import java.util.*;
+
+import static java.lang.reflect.Array.newInstance;
 
 /**
  * This class contains various methods for manipulating arrays.
@@ -80,7 +75,6 @@ public enum ArrayUtils {
      * @return the column <i>c</i> from <i>array</i>, or null if array is null or array.length is null,
      * or if c is negative or if array.length < c
      */
-    @SuppressWarnings({"unchecked", "RedundantCast"})
     public static int[] getColumn(final int[][] array, final int c) {
         if (array != null && array.length > 0
                 && c >= 0 && array[0].length > c) {
@@ -100,7 +94,6 @@ public enum ArrayUtils {
      * @return the column <i>c</i> from <i>array</i>, or null if array is null or array.length is null,
      * or if c is negative or if array.length < c
      */
-    @SuppressWarnings({"unchecked", "RedundantCast"})
     public static double[] getColumn(final double[][] array, final int c) {
         if (array != null && array.length > 0
                 && c >= 0 && array[0].length > c) {
@@ -121,7 +114,7 @@ public enum ArrayUtils {
      * @return the column <i>c</i> from <i>array</i>, or null if array is null or array.length is null,
      * or if c is negative or if array.length < c
      */
-    @SuppressWarnings({"unchecked", "RedundantCast"})
+    @SuppressWarnings({"unchecked"})
     public static <T> T[] getColumn(final T[][] array, final int c) {
         return getColumn(array, c, (Class<? extends T[]>) array[0].getClass());
     }
@@ -246,7 +239,6 @@ public enum ArrayUtils {
      * @param toAppend array of arrays to append
      * @return a new Array composed of both given in parameters.
      */
-    @SuppressWarnings("unchecked")
     public static IntVar[] append(IntVar[]... toAppend) {
         int total = length(toAppend);
         IntVar[] ret = new IntVar[total];
@@ -266,7 +258,6 @@ public enum ArrayUtils {
      * @param toAppend array of arrays to append
      * @return a new Array composed of both given in parameters.
      */
-    @SuppressWarnings("unchecked")
     public static BoolVar[] append(BoolVar[]... toAppend) {
         int total = length(toAppend);
         BoolVar[] ret = new BoolVar[total];
@@ -299,7 +290,6 @@ public enum ArrayUtils {
      * @param elements elements to append
      * @return a new Array composed of both given in parameters.
      */
-    @SuppressWarnings("unchecked")
     public static IntVar[] concat(IntVar[] array, IntVar... elements) {
         return append(array, elements);
     }
@@ -311,7 +301,6 @@ public enum ArrayUtils {
      * @param elements elements to append
      * @return a new Array composed of both given in parameters.
      */
-    @SuppressWarnings("unchecked")
     public static BoolVar[] concat(BoolVar[] array, BoolVar... elements) {
         return append(array, elements);
     }
@@ -322,7 +311,6 @@ public enum ArrayUtils {
      * @param toAppend array of arrays to append
      * @return a new Array composed of those given in parameters.
      */
-    @SuppressWarnings("unchecked")
     public static int[] append(int[]... toAppend) {
         int total = 0;
         for (int[] tab : toAppend) {
@@ -348,7 +336,6 @@ public enum ArrayUtils {
      * @param elements elements to append
      * @return a new Array composed of both given in parameters.
      */
-    @SuppressWarnings("unchecked")
     public static int[] concat(int[] array, int... elements) {
         return append(array, elements);
     }
@@ -399,7 +386,6 @@ public enum ArrayUtils {
      * @param tab array of ints
      * @param <T> the class of the objects in the input array
      */
-    @SuppressWarnings("unchecked")
     public static <T> void permutation(int[] permutation, T[] tab) {
         T[] tmp = tab.clone();
         for (int i = 0; i < tab.length; i++) {
@@ -424,7 +410,7 @@ public enum ArrayUtils {
      * @param <T> the class of the objects in the input array
      * @return an array composed of elements from <i>list</i>.
      */
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({"unchecked", "rawtypes"})
     public static <T> T[] toArray(Class c, List<T> list) {
         //        T[] array = (T[])Array.newInstance(c, list.size());
         //        return list.toArray(array);
@@ -529,7 +515,7 @@ public enum ArrayUtils {
         return elt.toArray(ret);
     }
 
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({"unchecked", "unused"})
     public static <T> T[] flattenSubMatrix(int iMin, int iLength, int jMin, int jLength, T[][] matrix) {
         T[] ret = (T[]) newInstance(matrix[0].getClass().getComponentType(), iLength * jLength);
         for (int i = 0, k = 0; i < iLength; i++, k += jLength)
@@ -555,19 +541,19 @@ public enum ArrayUtils {
     }
 
 
-    public static int[] createNonRedundantSortedValues(TIntArrayList values) {
-        values.sort();
+    public static int[] createNonRedundantSortedValues(IntArrayList values) {
+        values.sort((i,j)-> i - j);
         int offset = 1;
         while (offset < values.size()) {
-            while (values.get(offset - 1) == values.get(offset)) {
-                values.remove(offset);
+            while (values.getInt(offset - 1) == values.getInt(offset)) {
+                values.removeInt(offset);
                 if (offset == values.size()) {
                     break;
                 }
             }
             offset++;
         }
-        return values.toArray();
+        return values.toIntArray();
     }
 
 
@@ -642,6 +628,7 @@ public enum ArrayUtils {
      * @param nb upper value (exclusive)
      * @return an array of ints composed of unique values from 0 (inclusive) to nb (exclusive), in random order.
      */
+    @SuppressWarnings("unused")
     public static int[] zeroToNShuffle(int nb) {
         return zeroToNShuffle(nb, System.nanoTime());
     }
@@ -654,10 +641,9 @@ public enum ArrayUtils {
      */
     public static int[] zeroToNShuffle(int nb, long seed) {
         Random r = new Random(seed);
-        int[] ret = new int[nb];
         ArrayList<Integer> tmp = new ArrayList<>();
         for (int i = 0; i < nb; i++) tmp.add(i);
-        Collections.shuffle(tmp);
+        Collections.shuffle(tmp, r);
         return tmp.stream().mapToInt(i -> i).toArray();
 
     }
@@ -682,6 +668,7 @@ public enum ArrayUtils {
      * @param tab array of ints
      * @param seed seed for randomness
      */
+    @SuppressWarnings("unused")
     public static void randomPermutations(int[] tab, long seed) {
         randomPermutations(tab, new Random(seed));
     }
@@ -708,6 +695,7 @@ public enum ArrayUtils {
      * @param seed seed for randomness
      * @param <E> the class of the objects in the input array
      */
+    @SuppressWarnings("unused")
     public static <E> void randomPermutations(E[] tab, long seed) {
         randomPermutations(tab, new Random(seed));
     }
@@ -728,13 +716,11 @@ public enum ArrayUtils {
      */
     public static int binarySearchInc(int[] a, int fromIndex, int toIndex, int key, boolean gq) {
         int p = Arrays.binarySearch(a, fromIndex, toIndex, key);
-        if (p >= 0) {
-            return p;
-        } else {
+        if (p < 0) {
             p = -(p + 1);
             p -= (gq ? 0 : 1);
-            return p;
         }
+        return p;
     }
 
     /**

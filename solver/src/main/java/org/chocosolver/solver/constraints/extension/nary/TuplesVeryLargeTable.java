@@ -9,8 +9,8 @@
  */
 package org.chocosolver.solver.constraints.extension.nary;
 
-import gnu.trove.map.hash.TIntObjectHashMap;
-
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import org.chocosolver.solver.constraints.extension.Tuples;
 import org.chocosolver.solver.variables.IntVar;
 
@@ -21,6 +21,7 @@ import org.chocosolver.solver.variables.IntVar;
  * @author Charles Prud'homme
  * @since 08/06/11
  */
+@SuppressWarnings("rawtypes")
 public class TuplesVeryLargeTable extends LargeRelation {
 
     /**
@@ -30,12 +31,12 @@ public class TuplesVeryLargeTable extends LargeRelation {
 
     private final boolean feasible;
 
-    private final TIntObjectHashMap<TIntObjectHashMap> supports;
+    private final Int2ObjectMap<Int2ObjectMap> supports;
 
     public TuplesVeryLargeTable(Tuples tuples, IntVar[] vars) {
         n = vars.length;
         feasible = tuples.isFeasible();
-        supports = new TIntObjectHashMap<>();
+        supports = new Int2ObjectOpenHashMap<>();
         int nt = tuples.nbTuples();
         for (int i = 0; i < nt; i++) {
             int[] tuple = tuples.get(i);
@@ -47,7 +48,7 @@ public class TuplesVeryLargeTable extends LargeRelation {
 
     @SuppressWarnings("unchecked")
     public boolean checkTuple(int[] tuple) {
-        TIntObjectHashMap<TIntObjectHashMap> current = supports;
+        Int2ObjectMap<Int2ObjectMap> current = supports;
         int i = 0;
         while (i < n - 1) {
             current = current.get(tuple[i++]);
@@ -65,11 +66,11 @@ public class TuplesVeryLargeTable extends LargeRelation {
 
     @SuppressWarnings("unchecked")
     private void setTuple(int[] tuple) {
-        TIntObjectHashMap<TIntObjectHashMap> current = supports;
+        Int2ObjectMap<Int2ObjectMap> current = supports;
         for (int i = 0; i < tuple.length; i++) {
-            TIntObjectHashMap<TIntObjectHashMap> _current = current.get(tuple[i]);
+            Int2ObjectMap<Int2ObjectMap> _current = current.get(tuple[i]);
             if (_current == null) {
-                _current = new TIntObjectHashMap<>();
+                _current = new Int2ObjectOpenHashMap<>();
                 current.put(tuple[i], _current);
             }
             current = _current;
@@ -85,11 +86,11 @@ public class TuplesVeryLargeTable extends LargeRelation {
     }
 
     @SuppressWarnings("unchecked")
-    private void tuple(TIntObjectHashMap<TIntObjectHashMap> current, int[] tt, int p, Tuples tuples) {
+    private void tuple(Int2ObjectMap<Int2ObjectMap> current, int[] tt, int p, Tuples tuples) {
         if (current.isEmpty()) {
             tuples.add(tt);
         } else {
-            for (int k : current.keys()) {
+            for (int k : current.keySet()) {
                 tt[p] = k;
                 tuple(current.get(k), tt, p + 1, tuples);
             }

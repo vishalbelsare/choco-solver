@@ -9,7 +9,8 @@
  */
 package org.chocosolver.solver.constraints.set;
 
-import gnu.trove.map.hash.TIntIntHashMap;
+import it.unimi.dsi.fastutil.ints.Int2IntMap;
+import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
 import org.chocosolver.solver.constraints.Propagator;
 import org.chocosolver.solver.constraints.PropagatorPriority;
 import org.chocosolver.solver.exception.ContradictionException;
@@ -83,13 +84,14 @@ public class PropIntersectionFilterSets extends Propagator<SetVar> {
     public void propagate(int evtmask) throws ContradictionException {
         SetVar intersection = vars[k];
         // Maps elements in sets to the number of occurences of those elements.
-        TIntIntHashMap count = new TIntIntHashMap();
+        Int2IntMap count = new Int2IntOpenHashMap();
         for (int i = 0; i < k; i++) {
             ISetIterator iter = vars[i].getLB().iterator();
             while (iter.hasNext()) {
                 int j = iter.nextInt();
+                //noinspection ConstantConditions
                 if (!intersection.getUB().contains(j) &&
-                    count.adjustOrPutValue(j, 1, 1) >= k - 1) {
+                    count.compute(j, (k,w)-> w == null? 1:w+1) >= k - 1) {
                     // intersection does not contain j but k - 1 sets contains
                     // j, hence the last set must not contain j.
                     findSetThatDoesNotContainJInLB(j).remove(j, this);

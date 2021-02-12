@@ -9,7 +9,7 @@
  */
 package org.chocosolver.solver.constraints.reification;
 
-import gnu.trove.set.hash.TIntHashSet;
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.constraints.Constraint;
 import org.chocosolver.solver.exception.ContradictionException;
@@ -111,11 +111,11 @@ public class ReifiedTest {
     }
 
     private int[] union(int[][] domains) {
-        TIntHashSet union = new TIntHashSet();
+        IntOpenHashSet union = new IntOpenHashSet();
         for (int i = 0; i < domains.length; i++) {
-            union.addAll(domains[i]);
+            Arrays.stream(domains).forEach(d -> Arrays.stream(d).forEach(union::add));
         }
-        int[] values = union.toArray();
+        int[] values = union.toIntArray();
         Arrays.sort(values);
         return values;
     }

@@ -9,7 +9,8 @@
  */
 package org.chocosolver.solver.constraints.nary.clauses;
 
-import gnu.trove.map.hash.TIntObjectHashMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.learn.XParameters;
 import org.chocosolver.solver.variables.BoolVar;
@@ -53,7 +54,7 @@ public class ClauseBuilder {
     /**
      * Sets of forbidden values
      */
-    private final TIntObjectHashMap<IntIterableRangeSet> sets;
+    private final Int2ObjectMap<IntIterableRangeSet> sets;
     /**
      * Status of the nogood to build
      */
@@ -61,7 +62,7 @@ public class ClauseBuilder {
     /**
      * Initial state of the variables
      */
-    private final TIntObjectHashMap<IntIterableRangeSet> initialDomains;
+    private final Int2ObjectMap<IntIterableRangeSet> initialDomains;
 
     /**
      * Nogood builder, to ease declaration of nogoods
@@ -70,8 +71,8 @@ public class ClauseBuilder {
      */
     public ClauseBuilder(Model mModel) {
         vars = new HashSet<>();
-        sets = new TIntObjectHashMap<>();
-        initialDomains = new TIntObjectHashMap<>();
+        sets = new Int2ObjectOpenHashMap<>();
+        initialDomains = new Int2ObjectOpenHashMap<>();
         Arrays.stream(mModel.retrieveIntVars(true))
                 .forEach(v -> initialDomains.put(v.getId(), new IntIterableRangeSet(v)));
     }

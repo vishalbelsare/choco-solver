@@ -9,7 +9,7 @@
  */
 package org.chocosolver.solver.constraints.nary.cumulative;
 
-import gnu.trove.list.array.TIntArrayList;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 import org.chocosolver.solver.constraints.Propagator;
 import org.chocosolver.solver.exception.ContradictionException;
 import org.chocosolver.solver.variables.IntVar;
@@ -26,7 +26,7 @@ public class DisjunctiveTaskIntervalFilter extends CumulFilter{
     // VARIABLES
     //***********************************************************************************
 
-    private TIntArrayList list = new TIntArrayList();
+    private final IntArrayList list = new IntArrayList();
 
     //***********************************************************************************
     // CONSTRUCTOR
@@ -45,7 +45,7 @@ public class DisjunctiveTaskIntervalFilter extends CumulFilter{
         // filtering algorithm for disjunctive constraint
         capa.updateUpperBound(1,aCause);
         // remove tasks that do not consume any resource
-        list.reset();//clear();
+        list.clear();
         ISetIterator tIter = tasks.iterator();
         while (tIter.hasNext()){
             int t = tIter.nextInt();
@@ -53,8 +53,8 @@ public class DisjunctiveTaskIntervalFilter extends CumulFilter{
                 list.add(t);
             }
         }
-        int[] tsks = list.toArray();
-        ArraySort sort = new ArraySort(tsks.length,false,true);
+        int[] tsks = list.toIntArray();
+        ArraySort<int[]> sort = new ArraySort<>(tsks.length,false,true);
         sort.sort(tsks, tsks.length, (i1, i2) -> s[i1].getLB()-s[i2].getLB());
         // run energetic reasoning
         for (int x=0;x<tsks.length;x++){

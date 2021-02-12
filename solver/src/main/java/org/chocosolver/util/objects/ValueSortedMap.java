@@ -9,7 +9,8 @@
  */
 package org.chocosolver.util.objects;
 
-import gnu.trove.map.hash.TObjectIntHashMap;
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 
 import java.util.Iterator;
 import java.util.Map;
@@ -35,7 +36,7 @@ public class ValueSortedMap<E> {
     /**
      * Set : values -> E
      */
-    TObjectIntHashMap<E> map;
+    Object2IntMap<E> map;
     /**
      * Ordered set : values -> E
      */
@@ -48,7 +49,8 @@ public class ValueSortedMap<E> {
      * In addition, values are sorted.
      */
     public ValueSortedMap() {
-        this.map = new TObjectIntHashMap<>(16, .5f, NO_ENTRY);
+        this.map = new Object2IntOpenHashMap<>();
+        this.map.defaultReturnValue(NO_ENTRY);
         this.rmap = new TreeMap<>();
     }
 
@@ -81,16 +83,15 @@ public class ValueSortedMap<E> {
      * @param v the value
      */
     public void replace(E k, int v) {
-        int cValue = map.get(k);
+        int cValue = map.getInt(k);
         assert cValue != NO_ENTRY;
-        int amount = v - cValue;
-        if(amount != 0) {
-            map.adjustValue(k, amount);
+        if(v - cValue != 0) {
+            map.replace(k, v);
             rmap.remove(cValue);
             rmap.put(v, k);
         }
-        assert rmap.get(map.get(k)) == k;
-        assert map.get(rmap.get(v)) == v;
+        assert rmap.get(map.getInt(k)) == k;
+        assert map.getInt(rmap.get(v)) == v;
     }
 
     /**
@@ -98,7 +99,7 @@ public class ValueSortedMap<E> {
      * @return value attached to the key <i>k</i>, or {@link #NO_ENTRY} otherwise.
      */
     public int getValue(E k) {
-        return map.get(k);
+        return map.getInt(k);
     }
 
     /**
@@ -107,7 +108,7 @@ public class ValueSortedMap<E> {
      * @return value attached to the key <i>k</i>, or <i>defaultValue</i> otherwise.
      */
     public int getValueOrDefault(E k, int defaultValue) {
-        int value = map.get(k);
+        int value = map.getInt(k);
         if (value == NO_ENTRY) {
             return defaultValue;
         }
@@ -140,7 +141,7 @@ public class ValueSortedMap<E> {
      */
     public int pollLastValue() {
         Map.Entry<Integer, E> last = rmap.pollLastEntry();
-        map.remove(last.getValue());
+        map.removeInt(last.getValue());
         return last.getKey();
     }
 
@@ -149,13 +150,14 @@ public class ValueSortedMap<E> {
      * @param k a key
      */
     public void remove(E k){
-        rmap.remove(map.remove(k));
+        rmap.remove(map.removeInt(k));
     }
 
     /**
      * Remove any key and its value that matches the predicate <i>filter</i>
      * @param filter predicate that satisfies (key,value) to remove
      */
+    @SuppressWarnings("unused")
     public boolean removeIf(Predicate<? super E> filter) {
         Objects.requireNonNull(filter);
         boolean removed = false;
@@ -163,7 +165,7 @@ public class ValueSortedMap<E> {
         while (each.hasNext()) {
             E e = each.next();
             if (filter.test(e)) {
-                int value = map.get(e);
+                int value = map.getInt(e);
                 each.remove();
                 rmap.remove(value);
                 removed = true;

@@ -9,7 +9,8 @@
  */
 package org.chocosolver.solver.constraints.nary.nvalue;
 
-import gnu.trove.map.hash.TIntIntHashMap;
+import it.unimi.dsi.fastutil.ints.Int2IntMap;
+import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
 import org.chocosolver.solver.constraints.Propagator;
 import org.chocosolver.solver.exception.ContradictionException;
 import org.chocosolver.solver.variables.IntVar;
@@ -46,18 +47,19 @@ public class PropAtLeastNValues_AC extends Propagator<IntVar> {
     // VARIABLES
     //***********************************************************************************
 
-    private int n, n2;
-    private DirectedGraph digraph;
+    private final int n;
+    private final int n2;
+    private final DirectedGraph digraph;
     private int[] nodeSCC;
-    private BitSet free;
-    private UnaryIntProcedure<Integer> remProc;
+    private final BitSet free;
+    private final UnaryIntProcedure<Integer> remProc;
     private final IIntDeltaMonitor[] idms;
-    private StrongConnectivityFinder SCCfinder;
+    private final StrongConnectivityFinder SCCfinder;
     // for augmenting matching (BFS)
-    private int[] father;
-    private BitSet in;
-    private TIntIntHashMap map;
-    private int[] fifo;
+    private final int[] father;
+    private final BitSet in;
+    private final Int2IntMap map;
+    private final int[] fifo;
 
     //***********************************************************************************
     // CONSTRUCTORS
@@ -80,7 +82,7 @@ public class PropAtLeastNValues_AC extends Propagator<IntVar> {
             idms[i] = this.vars[i].monitorDelta(this);
         }
         n = variables.length;
-        map = new TIntIntHashMap(vals.length);
+        map = new Int2IntOpenHashMap(vals.length);
         IntVar v;
         int ub;
         int idx = n;
@@ -133,7 +135,7 @@ public class PropAtLeastNValues_AC extends Propagator<IntVar> {
     // MATCHING
     //***********************************************************************************
 
-    private int repairMatching() throws ContradictionException {
+    private int repairMatching() {
         for (int i = free.nextSetBit(0); i >= 0 && i < n; i = free.nextSetBit(i + 1)) {
             tryToMatch(i);
         }
@@ -146,7 +148,8 @@ public class PropAtLeastNValues_AC extends Propagator<IntVar> {
         return card;
     }
 
-    private void tryToMatch(int i) throws ContradictionException {
+    @SuppressWarnings("DuplicatedCode")
+    private void tryToMatch(int i) {
         int mate = augmentPath_BFS(i);
         if (mate != -1) {
             free.clear(mate);
@@ -160,6 +163,7 @@ public class PropAtLeastNValues_AC extends Propagator<IntVar> {
         }
     }
 
+    @SuppressWarnings("DuplicatedCode")
     private int augmentPath_BFS(int root) {
         in.clear();
         int indexFirst = 0, indexLast = 0;
@@ -328,13 +332,13 @@ public class PropAtLeastNValues_AC extends Propagator<IntVar> {
 
         private int idx;
 
-        public void execute(int i) throws ContradictionException {
+        public void execute(int i) {
             digraph.removeArc(idx, map.get(i));
             digraph.removeArc(map.get(i), idx);
         }
 
         @Override
-        public UnaryIntProcedure set(Integer integer) {
+        public UnaryIntProcedure<Integer> set(Integer integer) {
             this.idx = integer;
             return this;
         }

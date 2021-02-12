@@ -9,7 +9,8 @@
  */
 package org.chocosolver.solver.constraints;
 
-import gnu.trove.map.hash.THashMap;
+import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 
 /**
  * <br/>
@@ -21,7 +22,7 @@ public enum Operator {
 
     NONE(), EQ(), LT(), GT(), NQ(), LE(), GE(), PL(), MN();
 
-	private static THashMap<String, Operator> operators = new THashMap<>();
+	private static final Object2ObjectMap<String, Operator> operators = new Object2ObjectOpenHashMap<>();
 
     static {
         operators.put("@", Operator.NONE);

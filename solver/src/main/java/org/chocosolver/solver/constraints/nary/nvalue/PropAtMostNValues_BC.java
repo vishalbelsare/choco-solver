@@ -9,7 +9,7 @@
  */
 package org.chocosolver.solver.constraints.nary.nvalue;
 
-import gnu.trove.list.array.TIntArrayList;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 import org.chocosolver.solver.constraints.Propagator;
 import org.chocosolver.solver.exception.ContradictionException;
 import org.chocosolver.solver.variables.IntVar;
@@ -42,15 +42,16 @@ public class PropAtMostNValues_BC extends Propagator<IntVar> {
     // VARIABLES
     //***********************************************************************************
 
-    private int n;
-    private int nbMaxValues;
+    private final int n;
+    private final int nbMaxValues;
     private int minValue;
     private int minIndex, maxIndex;
-    private TIntArrayList[] bound;
-    private TIntArrayList stamp;
-    private int[] minVal, maxVal;
-    private BitSet kerRepresentant;
-    private int[] orderedNodes;
+    private final IntArrayList[] bound;
+    private final IntArrayList stamp;
+    private final int[] minVal;
+    private final int[] maxVal;
+    private final BitSet kerRepresentant;
+    private final int[] orderedNodes;
 
     //***********************************************************************************
     // CONSTRUCTORS
@@ -78,13 +79,13 @@ public class PropAtMostNValues_BC extends Propagator<IntVar> {
             maxValue = Math.max(maxValue, vars[i].getUB());
         }
         nbMaxValues = maxValue - minValue + 1;
-        bound = new TIntArrayList[nbMaxValues];
+        bound = new IntArrayList[nbMaxValues];
         for (int i = 0; i < nbMaxValues; i++) {
-            bound[i] = new TIntArrayList();
+            bound[i] = new IntArrayList();
         }
         minVal = new int[n];
         maxVal = new int[n];
-        stamp = new TIntArrayList();
+        stamp = new IntArrayList();
         kerRepresentant = new BitSet(n);
         orderedNodes = new int[n];
     }
@@ -93,7 +94,7 @@ public class PropAtMostNValues_BC extends Propagator<IntVar> {
     // Initialization and sort
     //***********************************************************************************
 
-    private void computeBounds() throws ContradictionException {
+    private void computeBounds() {
         minIndex = vars[0].getLB();
         maxIndex = vars[0].getUB();
         for (int i = 0; i < n; i++) {
@@ -137,7 +138,7 @@ public class PropAtMostNValues_BC extends Propagator<IntVar> {
         kerRepresentant.clear();
         for (int i = minIndex; i <= maxIndex; i++) {
             for (int k = bound[i].size() - 1; k >= 0; k--) {
-                node = bound[i].get(k);
+                node = bound[i].getInt(k);
                 orderedNodes[index++] = node;
                 if (min == Integer.MIN_VALUE) {
                     min = minVal[node];
@@ -179,7 +180,7 @@ public class PropAtMostNValues_BC extends Propagator<IntVar> {
         int index = 0;
         for (int i = maxIndex; i >= minIndex; i--) {
             for (int k = bound[i].size() - 1; k >= 0; k--) {
-                node = bound[i].get(k);
+                node = bound[i].getInt(k);
                 orderedNodes[index++] = node;
                 if (min == Integer.MIN_VALUE) {
                     min = minVal[node];
@@ -217,22 +218,22 @@ public class PropAtMostNValues_BC extends Propagator<IntVar> {
         if (LB) {
             int min = Integer.MIN_VALUE;
             for (int i = stamp.size() - 1; i >= 0; i--) {
-                if (vars[stamp.get(i)].getUB() < newVal)
-                    min = Math.max(min, vars[stamp.get(i)].getLB());
+                if (vars[stamp.getInt(i)].getUB() < newVal)
+                    min = Math.max(min, vars[stamp.getInt(i)].getLB());
             }
             for (int i = stamp.size() - 1; i >= 0; i--) {
-                if (vars[stamp.get(i)].getUB() < newVal)
-                    hasChanged |= vars[stamp.get(i)].updateLowerBound(min, this);
+                if (vars[stamp.getInt(i)].getUB() < newVal)
+                    hasChanged |= vars[stamp.getInt(i)].updateLowerBound(min, this);
             }
         } else {
             int max = Integer.MAX_VALUE;
             for (int i = stamp.size() - 1; i >= 0; i--) {
-                if (vars[stamp.get(i)].getLB() > newVal)
-                    max = Math.min(max, vars[stamp.get(i)].getUB());
+                if (vars[stamp.getInt(i)].getLB() > newVal)
+                    max = Math.min(max, vars[stamp.getInt(i)].getUB());
             }
             for (int i = stamp.size() - 1; i >= 0; i--) {
-                if (vars[stamp.get(i)].getLB() > newVal)
-                    hasChanged |= vars[stamp.get(i)].updateUpperBound(max, this);
+                if (vars[stamp.getInt(i)].getLB() > newVal)
+                    hasChanged |= vars[stamp.getInt(i)].updateUpperBound(max, this);
             }
         }
         return hasChanged;

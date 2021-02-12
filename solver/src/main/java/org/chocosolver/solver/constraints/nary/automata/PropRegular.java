@@ -9,8 +9,9 @@
  */
 package org.chocosolver.solver.constraints.nary.automata;
 
-import gnu.trove.iterator.TIntIterator;
-import gnu.trove.set.hash.TIntHashSet;
+import it.unimi.dsi.fastutil.ints.IntIterator;
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
+import it.unimi.dsi.fastutil.ints.IntSet;
 import org.chocosolver.memory.IEnvironment;
 import org.chocosolver.solver.constraints.Propagator;
 import org.chocosolver.solver.constraints.PropagatorPriority;
@@ -39,7 +40,7 @@ import java.util.HashSet;
  */
 public class PropRegular extends Propagator<IntVar> {
 
-    private StoredDirectedMultiGraph graph;
+    private final StoredDirectedMultiGraph graph;
     private final IAutomaton automaton;
     private final RemProc rem_proc;
     private final IIntDeltaMonitor[] idms;
@@ -97,7 +98,7 @@ public class PropRegular extends Propagator<IntVar> {
         }
 
         @Override
-        public UnaryIntProcedure set(Integer idxVar) {
+        public UnaryIntProcedure<Integer> set(Integer idxVar) {
             this.idxVar = idxVar;
             return this;
         }
@@ -124,6 +125,7 @@ public class PropRegular extends Propagator<IntVar> {
 
     //////////////////////
 
+    @SuppressWarnings("DuplicatedCode")
     private static StoredDirectedMultiGraph initGraph(IEnvironment environment, IntVar[] vars, IAutomaton auto) {
         int aid = 0;
         int nid = 0;
@@ -153,34 +155,34 @@ public class PropRegular extends Propagator<IntVar> {
 
 
         int i, j, k;
-        TIntIterator layerIter;
-        TIntIterator qijIter;
+        IntIterator layerIter;
+        IntIterator qijIter;
 
 
         //forward pass, construct all paths described by the automaton for word of length nbVars.
-        TIntHashSet[] layer = new TIntHashSet[n + 1];
-        TIntHashSet[] tmpQ = new TIntHashSet[totalSizes];
+        IntSet[] layer = new IntSet[n + 1];
+        IntSet[] tmpQ = new IntSet[totalSizes];
         for (i = 0; i <= n; i++) {
-            layer[i] = new TIntHashSet();
+            layer[i] = new IntOpenHashSet();
         }
         layer[0].add(auto.getInitialState());
-        TIntHashSet nexts = new TIntHashSet();
+        IntSet nexts = new IntOpenHashSet();
         for (i = 0; i < n; i++) {
             int ub = vars[i].getUB();
             for (j = vars[i].getLB(); j <= ub; j = vars[i].nextValue(j)) {
                 layerIter = layer[i].iterator();
                 while (layerIter.hasNext()) {
-                    k = layerIter.next();
+                    k = layerIter.nextInt();
                     nexts.clear();
                     auto.delta(k, j, nexts);
-                    for (TIntIterator it = nexts.iterator(); it.hasNext(); ) {
-                        int succ = it.next();
+                    for (IntIterator it = nexts.iterator(); it.hasNext(); ) {
+                        int succ = it.nextInt();
                         layer[i + 1].add(succ);
                     }
                     if (!nexts.isEmpty()) {
                         int idx = starts[i] + j - offsets[i];
                         if (tmpQ[idx] == null)
-                            tmpQ[idx] = new TIntHashSet();
+                            tmpQ[idx] = new IntOpenHashSet();
                         tmpQ[idx].add(k);
                     }
                 }
@@ -190,7 +192,7 @@ public class PropRegular extends Propagator<IntVar> {
         //removing reachable non accepting states
         layerIter = layer[n].iterator();
         while (layerIter.hasNext()) {
-            k = layerIter.next();
+            k = layerIter.nextInt();
             if (auto.isNotFinal(k)) {
                 layerIter.remove();
             }
@@ -206,16 +208,16 @@ public class PropRegular extends Propagator<IntVar> {
             int ub = vars[i].getUB();
             for (j = vars[i].getLB(); j <= ub; j = vars[i].nextValue(j)) {
                 int idx = starts[i] + j - offsets[i];
-                TIntHashSet l = tmpQ[idx];
+                IntSet l = tmpQ[idx];
                 if (l != null) {
                     qijIter = l.iterator();
                     while (qijIter.hasNext()) {
-                        k = qijIter.next();
+                        k = qijIter.nextInt();
                         nexts.clear();
                         auto.delta(k, j, nexts);
                         boolean added = false;
-                        for (TIntIterator it = nexts.iterator(); it.hasNext(); ) {
-                            int qn = it.next();
+                        for (IntIterator it = nexts.iterator(); it.hasNext(); ) {
+                            int qn = it.nextInt();
                             if (layer[i + 1].contains(qn)) {
 
                                 added = true;
@@ -249,7 +251,7 @@ public class PropRegular extends Propagator<IntVar> {
             layerIter = layer[i].iterator();
             // If no more arcs go out of a given state in the layer, then we remove the state from that layer
             while (layerIter.hasNext())
-                if (!mark.get(layerIter.next()))
+                if (!mark.get(layerIter.nextInt()))
                     layerIter.remove();
         }
         return new StoredDirectedMultiGraph(environment, graph, starts, offsets, totalSizes);

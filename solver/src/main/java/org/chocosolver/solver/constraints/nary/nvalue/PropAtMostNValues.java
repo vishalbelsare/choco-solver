@@ -9,16 +9,14 @@
  */
 package org.chocosolver.solver.constraints.nary.nvalue;
 
-import gnu.trove.list.array.TIntArrayList;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.ints.IntIterator;
 import org.chocosolver.solver.constraints.Propagator;
 import org.chocosolver.solver.exception.ContradictionException;
 import org.chocosolver.solver.variables.IntVar;
 import org.chocosolver.util.ESat;
 
 import java.util.BitSet;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
 
 import static org.chocosolver.solver.constraints.PropagatorPriority.QUADRATIC;
 import static org.chocosolver.util.tools.ArrayUtils.concat;
@@ -36,14 +34,15 @@ public class PropAtMostNValues extends Propagator<IntVar> {
     // VARIABLES
     //***********************************************************************************
 
-    private int[] concernedValues;
-    private int n;
-    private int[] unusedValues, mate;
+    private final int[] concernedValues;
+    private final int n;
+    private final int[] unusedValues;
+    private final int[] mate;
     private boolean allEnum; // all variables are enumerated
-    private int[] instVals; // for K1
-    private TIntArrayList dVar;
+    private final int[] instVals; // for K1
+    private final IntArrayList dVar;
     private int minVal, nbInst;
-    private BitSet valSet;
+    private final BitSet valSet;
 
     //***********************************************************************************
     // CONSTRUCTORS
@@ -74,7 +73,7 @@ public class PropAtMostNValues extends Propagator<IntVar> {
         }
         valSet = new BitSet(maxVal - minVal + 1);
         instVals = new int[n];
-        dVar = new TIntArrayList();
+        dVar = new IntArrayList();
     }
 
     //***********************************************************************************
@@ -183,17 +182,17 @@ public class PropAtMostNValues extends Propagator<IntVar> {
     }
 
     private void intersectionDomains() {
-        final List<Integer> inter = new LinkedList<>();
-        IntVar v = vars[dVar.get(0)];
+        final IntArrayList inter = new IntArrayList();
+        IntVar v = vars[dVar.getInt(0)];
         for (int val = v.getLB(); val <= v.getUB(); val = v.nextValue(val)) {
             inter.add(val);
         }
 
         for (int i = 0; i < dVar.size(); i++) {
-            final int next = dVar.get(i);
+            final int next = dVar.getInt(i);
             v = vars[next];
-            for (final Iterator it = inter.iterator(); it.hasNext(); ) {
-                if (!v.contains((Integer) it.next())) {
+            for (final IntIterator it = inter.iterator(); it.hasNext(); ) {
+                if (!v.contains(it.nextInt())) {
                     it.remove();
                 }
             }
@@ -236,6 +235,7 @@ public class PropAtMostNValues extends Propagator<IntVar> {
     // INFO
     //***********************************************************************************
 
+    @SuppressWarnings("DuplicatedCode")
     @Override
     public ESat isEntailed() {
         int countMin = 0;

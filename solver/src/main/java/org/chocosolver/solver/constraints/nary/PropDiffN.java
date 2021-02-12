@@ -9,7 +9,7 @@
  */
 package org.chocosolver.solver.constraints.nary;
 
-import gnu.trove.list.array.TIntArrayList;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 import org.chocosolver.solver.constraints.Propagator;
 import org.chocosolver.solver.constraints.PropagatorPriority;
 import org.chocosolver.solver.exception.ContradictionException;
@@ -33,10 +33,10 @@ public class PropDiffN extends Propagator<IntVar> {
     // VARIABLES
     //***********************************************************************************
 
-    private int n;
-    private UndirectedGraph overlappingBoxes;
-    private TIntArrayList boxesToCompute;
-    private TIntArrayList pruneList;
+    private final int n;
+    private final UndirectedGraph overlappingBoxes;
+    private final IntArrayList boxesToCompute;
+    private final IntArrayList pruneList;
 
     //***********************************************************************************
     // CONSTRUCTOR
@@ -49,7 +49,7 @@ public class PropDiffN extends Propagator<IntVar> {
             throw new SolverException("PropDiffN variable arrays do not have same size");
         }
         overlappingBoxes = new UndirectedGraph(model, n, SetType.LINKED_LIST, true);
-        boxesToCompute = new TIntArrayList(n);
+        boxesToCompute = new IntArrayList(n);
         for (int i = 0; i < n; i++) {
             for (int j = i + 1; j < n; j++) {
                 if (mayOverlap(i, j)) {
@@ -57,7 +57,7 @@ public class PropDiffN extends Propagator<IntVar> {
                 }
             }
         }
-        pruneList = new TIntArrayList(n);
+        pruneList = new IntArrayList(n);
     }
 
     //***********************************************************************************
@@ -95,7 +95,7 @@ public class PropDiffN extends Propagator<IntVar> {
         while(hasFiltered) {
             hasFiltered = false;
             if(PropagatorEventType.isFullPropagation(evtmask)) {
-                boxesToCompute.resetQuick();
+                boxesToCompute.clear();
                 for (int i = 0; i < n; i++) {
                     boxesToCompute.add(i);
                     for (int j = i + 1; j < n; j++) {
@@ -112,13 +112,13 @@ public class PropDiffN extends Propagator<IntVar> {
             }
             pruneList.clear();
             for(int k = 0; k<boxesToCompute.size(); k++)  {
-                int i = boxesToCompute.getQuick(k);
+                int i = boxesToCompute.getInt(k);
                 energyCheck(i);
                 hasFiltered |= prune(i);
             }
             boxesToCompute.clear();
             for(int k = 0; k< pruneList.size(); k++) {
-                prop(pruneList.getQuick(k));
+                prop(pruneList.getInt(k));
             }
         }
     }
@@ -179,6 +179,7 @@ public class PropDiffN extends Propagator<IntVar> {
             && (vars[j + off].getLB() < vars[i + off].getUB() + vars[i + off + 2 * n].getUB());
     }
 
+    @SuppressWarnings("DuplicatedCode")
     private boolean doOverlap(int i, int j, boolean hori) {
         int offSet = hori ? 0 : n;
         int s_i = vars[i + offSet].getUB();
@@ -189,6 +190,7 @@ public class PropDiffN extends Propagator<IntVar> {
             || (s_j < e_j && e_i > s_j && s_i < e_j);
     }
 
+    @SuppressWarnings("DuplicatedCode")
     private boolean filter(int i, int j, boolean hori) throws ContradictionException {
         boolean hasFiltered = false;
         int offSet = hori ? 0 : n;
@@ -259,7 +261,6 @@ public class PropDiffN extends Propagator<IntVar> {
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder("DIFFN(");
-        sb.append("");
         for (int i = 0; i < n; i++) {
             if (i > 0) sb.append(",");
             sb.append("[").append(vars[i].toString());

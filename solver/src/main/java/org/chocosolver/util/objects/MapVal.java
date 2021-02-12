@@ -9,7 +9,8 @@
  */
 package org.chocosolver.util.objects;
 
-import gnu.trove.map.hash.TIntDoubleHashMap;
+import it.unimi.dsi.fastutil.ints.Int2DoubleMap;
+import it.unimi.dsi.fastutil.ints.Int2DoubleOpenHashMap;
 
 /**
  *
@@ -20,14 +21,14 @@ import gnu.trove.map.hash.TIntDoubleHashMap;
  */
 public class MapVal implements IVal {
 
-    private final TIntDoubleHashMap Av;
-    private final TIntDoubleHashMap mAv;
+    private final Int2DoubleMap Av;
+    private final Int2DoubleMap mAv;
     private final int os;  // offset
 
     public MapVal(int os) {
         this.os = os;
-        this.Av = new TIntDoubleHashMap(32, 0.5f, 0, 0);
-        this.mAv = new TIntDoubleHashMap(32, 0.5f, 0, 0);
+        this.Av = new Int2DoubleOpenHashMap();
+        this.mAv = new Int2DoubleOpenHashMap();
     }
 
     @Override
@@ -43,11 +44,11 @@ public class MapVal implements IVal {
     @Override
     public void update(int nb_probes) {
         double activity, oldmA, U;
-        for (int k : Av.keys()) {
+        for (int k : Av.keySet()) {
             activity = Av.get(k);
             oldmA = mAv.get(k);
             U = activity - oldmA;
-            mAv.adjustValue(k, U / nb_probes);
+            mAv.put(k, U / nb_probes);
         }
     }
 

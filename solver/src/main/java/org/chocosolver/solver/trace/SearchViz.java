@@ -9,16 +9,10 @@
  */
 package org.chocosolver.solver.trace;
 
-import gnu.trove.stack.TIntStack;
-import gnu.trove.stack.array.TIntArrayStack;
-
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 import org.chocosolver.solver.Solver;
 import org.chocosolver.solver.exception.ContradictionException;
-import org.chocosolver.solver.search.loop.monitors.IMonitorContradiction;
-import org.chocosolver.solver.search.loop.monitors.IMonitorDownBranch;
-import org.chocosolver.solver.search.loop.monitors.IMonitorRestart;
-import org.chocosolver.solver.search.loop.monitors.IMonitorSolution;
-import org.chocosolver.solver.search.loop.monitors.IMonitorUpBranch;
+import org.chocosolver.solver.search.loop.monitors.*;
 import org.chocosolver.solver.search.strategy.decision.Decision;
 import org.chocosolver.solver.search.strategy.decision.DecisionPath;
 import org.chocosolver.solver.variables.IntVar;
@@ -26,7 +20,6 @@ import org.chocosolver.solver.variables.Variable;
 import org.chocosolver.util.iterators.DisposableRangeIterator;
 
 import java.io.Closeable;
-import java.io.IOException;
 
 /**
  * Created by cprudhom on 22/10/2015.
@@ -45,15 +38,15 @@ public abstract class SearchViz implements IMonitorDownBranch, IMonitorUpBranch,
     /**
      * Stacks of 'Parent Id'  used when backtrack
      */
-    private TIntStack pid_stack = new TIntArrayStack();
+    private final IntArrayList pid_stack = new IntArrayList();
     /**
      * Stacks of 'Alternative' used when backtrack
      */
-    private TIntStack alt_stack = new TIntArrayStack();
+    private final IntArrayList alt_stack = new IntArrayList();
     /**
      * Stacks of current node, to deal with jumps
      */
-    private TIntStack last_stack = new TIntArrayStack();
+    private final IntArrayList last_stack = new IntArrayList();
     /**
      * Node count: different from measures.getNodeCount() as we count failure nodes as well
      */
@@ -74,12 +67,12 @@ public abstract class SearchViz implements IMonitorDownBranch, IMonitorUpBranch,
     /**
      * set to <i>true</i> to send domain into 'info' field
      */
-    private boolean sendDomain;
+    private final boolean sendDomain;
 
     /**
      * Format for solution output
      */
-    private IMessage solutionMessage = new IMessage() {
+    private final IMessage solutionMessage = new IMessage() {
         @Override
         public String print() {
             StringBuilder s = new StringBuilder(32);
@@ -94,7 +87,7 @@ public abstract class SearchViz implements IMonitorDownBranch, IMonitorUpBranch,
      * Format for domain output
      * "{ "domains": {"VarA": "1..10, 12, 14..19", "VarB": "4"} }"
      */
-    private IMessage domainMessage = new IMessage() {
+    private final IMessage domainMessage = new IMessage() {
         @Override
         public String print() {
             StringBuilder s = new StringBuilder(32);
@@ -160,7 +153,7 @@ public abstract class SearchViz implements IMonitorDownBranch, IMonitorUpBranch,
      * Close connection to <a href="https://github.com/cp-profiler/cp-profiler">cp-profiler</a>.
      */
     @Override
-    public final void close() throws IOException {
+    public final void close() {
         disconnect();
         mSolver.unplugMonitor(this);
         connected = false;
@@ -174,9 +167,10 @@ public abstract class SearchViz implements IMonitorDownBranch, IMonitorUpBranch,
             if (last > 0) {
                 String pdec;
                 pdec = pretty(dp.getDecision(last - 1));
+                //noinspection rawtypes
                 Decision dec = dp.getLastDecision();
                 int ari = dec.getArity();
-                sendNode(nc, pid_stack.peek(), alt_stack.pop(), ari, rid, pdec,
+                sendNode(nc, pid_stack.topInt(), alt_stack.popInt(), ari, rid, pdec,
                         sendDomain? domainMessage.print():"");
                 for (int i = 0; i < ari; i++) {
                     pid_stack.push(nc); // each child will have the same pid
@@ -194,23 +188,23 @@ public abstract class SearchViz implements IMonitorDownBranch, IMonitorUpBranch,
 
     @Override
     public final void beforeUpBranch() {
-        last = last_stack.pop();
-        while (pid_stack.peek() != last) {
-            pid_stack.pop();
+        last = last_stack.popInt();
+        while (pid_stack.topInt() != last) {
+            pid_stack.popInt();
         }
-        pid_stack.pop();
+        pid_stack.popInt();
     }
 
     @Override
     public final void onSolution() {
         String dec = pretty(mSolver.getDecisionPath().getLastDecision());
-        sendSolution(nc, pid_stack.peek(), alt_stack.pop(), 0, rid, dec, solutionMessage.print());
+        sendSolution(nc, pid_stack.topInt(), alt_stack.popInt(), 0, rid, dec, solutionMessage.print());
     }
 
     @Override
     public final void onContradiction(ContradictionException cex) {
         String dec = pretty(mSolver.getDecisionPath().getLastDecision());
-        sendFailure(nc, pid_stack.peek(), alt_stack.pop(), 0, rid, dec, cex.toString());
+        sendFailure(nc, pid_stack.topInt(), alt_stack.popInt(), 0, rid, dec, cex.toString());
     }
 
     @Override
@@ -224,7 +218,7 @@ public abstract class SearchViz implements IMonitorDownBranch, IMonitorUpBranch,
         nc = 0;
     }
 
-    private static String pretty(Decision dec) {
+    private static String pretty(@SuppressWarnings("rawtypes") Decision dec) {
         if (dec == null) {
             return "ROOT";
         } else {

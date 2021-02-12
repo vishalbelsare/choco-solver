@@ -9,10 +9,10 @@
  */
 package org.chocosolver.solver.constraints.nary.sat;
 
-import gnu.trove.list.TIntList;
-import gnu.trove.list.array.TIntArrayList;
-import gnu.trove.map.hash.TIntObjectHashMap;
-import gnu.trove.map.hash.TObjectIntHashMap;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.ints.IntList;
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import org.chocosolver.memory.IStateInt;
 import org.chocosolver.sat.SatSolver;
 import org.chocosolver.sat.SatSolver.*;
@@ -40,32 +40,27 @@ public class PropSat extends Propagator<BoolVar> {
     /**
      * The SAT solver
      */
-    private SatSolver sat_;
+    private final SatSolver sat_;
 
     /**
      * Map between BoolVar and its literal
      */
-    private TObjectIntHashMap<BoolVar> indices_;
+    private final Object2IntMap<BoolVar> indices_;
 
     /**
      * For comparison with SAT solver trail, to deal properly with backtrack
      */
-    private IStateInt sat_trail_;
+    private final IStateInt sat_trail_;
 
     /**
      *  List of early deduction literals
      */
-    private TIntList early_deductions_;
-
-    /**
-     * Local-like parameter, for #why() method only, lazily initialized.
-     */
-    private TIntObjectHashMap<ArrayList<Clause>> inClauses;
+    private final IntList early_deductions_;
 
     /**
      * Store new added variables when {@link #initialized} is <i>false</i>
      */
-    private ArrayList<BoolVar> add_var;
+    private final ArrayList<BoolVar> add_var;
 
     /**
      * Indicates if this is initialized or not
@@ -82,9 +77,10 @@ public class PropSat extends Propagator<BoolVar> {
         super(new BoolVar[]{model.boolVar(true)}, PropagatorPriority.VERY_SLOW, true);// adds solver.ONE to fit to the super constructor
         this.vars = new BoolVar[0];    // erase model.ONE from the variable scope
 
-        this.indices_ = new TObjectIntHashMap<>(16,.5f, -1);
+        this.indices_ = new Object2IntOpenHashMap<>();
+        this.indices_.defaultReturnValue(-1);
         sat_ = new SatSolver();
-        early_deductions_ = new TIntArrayList();
+        early_deductions_ = new IntArrayList();
         sat_trail_ = model.getEnvironment().makeInt();
         add_var = new ArrayList<>(16);
     }
@@ -119,13 +115,13 @@ public class PropSat extends Propagator<BoolVar> {
         if (isCompletelyInstantiated()) {
             int var, val;
             boolean sign;
-            for (int k : sat_.implies_.keys()) {
+            for (int k : sat_.implies_.keySet()) {
                 sign = sign(negated(k));
                 var = var(k);
                 val = vars[var].getValue();
                 if (val == (sign ? 0 : 1)) {
-                    TIntList lits = sat_.implies_.get(k);
-                    for (int l : lits.toArray()) {
+                    IntArrayList lits = sat_.implies_.get(k);
+                    for (int l : lits.elements()) {
                         sign = sign(l);
                         var = var(l);
                         val = vars[var].getValue();
@@ -200,7 +196,7 @@ public class PropSat extends Propagator<BoolVar> {
      * @return its literal
      */
     public int makeVar(BoolVar expr) {
-        int var = indices_.get(expr);
+        int var = indices_.getInt(expr);
         if (var == -1) {
             var = sat_.newVariable();
             assert (vars.length + add_var.size() == var);
@@ -249,7 +245,7 @@ public class PropSat extends Propagator<BoolVar> {
             // Remark: explanations require to instantiated variables even if fail is set to true
             sat_trail_.set(sat_.trailMarker());
             for (int i = 0; i < sat_.touched_variables_.size(); ++i) {
-                lit = sat_.touched_variables_.get(i);
+                lit = sat_.touched_variables_.getInt(i);
                 var = var(lit);
                 boolean assigned_bool = sign(lit);
                 vars[var].instantiateTo(assigned_bool ? 1 : 0, this);
@@ -259,7 +255,7 @@ public class PropSat extends Propagator<BoolVar> {
                 vars[index].instantiateTo(1 - vars[index].getValue(), this);
             }
         }finally {
-            sat_.touched_variables_.resetQuick(); // issue#327
+            sat_.touched_variables_.clear(); // issue#327
         }
     }
 
@@ -281,7 +277,7 @@ public class PropSat extends Propagator<BoolVar> {
      * @param lits clause
      * @return <tt>false</tt> if failure is detected
      */
-    public boolean addClause(TIntList lits) {
+    public boolean addClause(IntArrayList lits) {
         boolean result = sat_.addClause(lits);
         storeEarlyDeductions();
         return result;
@@ -301,15 +297,15 @@ public class PropSat extends Propagator<BoolVar> {
 
     private void storeEarlyDeductions() {
         for (int i = 0; i < sat_.touched_variables_.size(); ++i) {
-            int lit = sat_.touched_variables_.get(i);
+            int lit = sat_.touched_variables_.getInt(i);
             early_deductions_.add(lit);
         }
-        sat_.touched_variables_.resetQuick();
+        sat_.touched_variables_.clear();
     }
 
     private void applyEarlyDeductions() throws ContradictionException {
         for (int i = 0; i < early_deductions_.size(); ++i) {
-            int lit = early_deductions_.get(i);
+            int lit = early_deductions_.getInt(i);
             int var = var(lit);
             boolean assigned_bool = sign(lit);
 //            demons_[var.value()].inhibit(solver());

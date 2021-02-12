@@ -9,7 +9,8 @@
  */
 package org.chocosolver.solver.constraints.checker.consistency;
 
-import gnu.trove.map.hash.THashMap;
+import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.constraints.checker.Modeler;
 import org.chocosolver.solver.exception.ContradictionException;
@@ -40,7 +41,7 @@ public class ConsistencyChecker {
 //        System.out.printf("Running %s\n", modeler.name());
         Consistency _consistency = valueOf(consistency);
 
-        THashMap<int[], IntVar> map = new THashMap<>();
+        Object2ObjectMap<int[], IntVar> map = new Object2ObjectOpenHashMap<>();
         double[] densities = {0.1, 0.25, 0.5, 0.75, 1.0};
         boolean[] homogeneous = {true, false};
         int loop = 0;
@@ -72,10 +73,9 @@ public class ConsistencyChecker {
                             Model test = modeler.model(nbVar, _domains, map, parameters);
                             try {
                                 if (!test.getSolver().solve()) {
-                                    System.out.println(
-                                            String.format("ds :%d, ide:%d, h:%d, var:%s, val:%d, loop:%d, seed: %d",
-                                            ds, ide, h, rvars[d], val, loop, seed));
-                                    System.out.println(String.format("REF:\n%s\nTEST:\n%s", ref, test));
+                                    System.out.printf("ds :%d, ide:%d, h:%d, var:%s, val:%d, loop:%d, seed: %d%n",
+                                    ds, ide, h, rvars[d], val, loop, seed);
+                                    System.out.printf("REF:\n%s\nTEST:\n%s%n", ref, test);
                                     fail("no solution found");
                                 }
                             } catch (Exception e) {
@@ -91,7 +91,7 @@ public class ConsistencyChecker {
 //        System.out.printf("loop: %d\n", loop);
     }
 
-    private static Model referencePropagation(Modeler modeler, int nbVar, int[][] domains, THashMap<int[], IntVar> map, Object parameters) {
+    private static Model referencePropagation(Modeler modeler, int nbVar, int[][] domains, Object2ObjectMap<int[], IntVar> map, Object parameters) {
         Model ref = modeler.model(nbVar, domains, map, parameters);
 //        LOGGER.error(ref.toString());
         try {
@@ -101,7 +101,7 @@ public class ConsistencyChecker {
             return null;
         } catch (Exception e) {
             System.out.println(e.getMessage());
-            System.out.println(String.format("REF:\n%s\n", ref));
+            System.out.printf("REF:\n%s\n%n", ref);
             fail();
         }
         return ref;

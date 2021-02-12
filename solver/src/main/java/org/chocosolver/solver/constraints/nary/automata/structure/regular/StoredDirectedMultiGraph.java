@@ -9,9 +9,9 @@
  */
 package org.chocosolver.solver.constraints.nary.automata.structure.regular;
 
-import gnu.trove.set.hash.TIntHashSet;
-import gnu.trove.stack.TIntStack;
-import gnu.trove.stack.array.TIntArrayStack;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
+import it.unimi.dsi.fastutil.ints.IntSet;
 import org.chocosolver.memory.IEnvironment;
 import org.chocosolver.solver.constraints.Propagator;
 import org.chocosolver.solver.constraints.nary.automata.structure.Node;
@@ -33,26 +33,27 @@ import java.util.Set;
  */
 public class StoredDirectedMultiGraph {
 
-	private int[] starts;
-	private int[] offsets;
-	private TIntStack stack = new TIntArrayStack();
-	private StoredIndexedBipartiteSetWithOffset[] supports;
+	private final int[] starts;
+	private final int[] offsets;
+	private final IntArrayList stack = new IntArrayList();
+	private final StoredIndexedBipartiteSetWithOffset[] supports;
 
-	private class Nodes {
+	private static class Nodes {
+		@SuppressWarnings("MismatchedReadAndWriteOfArray")
 		private int[] states;
 		private int[] layers;
 		private StoredIndexedBipartiteSetWithOffset[] outArcs;
 		private StoredIndexedBipartiteSetWithOffset[] inArcs;
 	}
 
-	private class Arcs {
+	private static class Arcs {
 		private int[] values;
 		private int[] dests;
 		private int[] origs;
 	}
 
-	private Nodes GNodes;
-	private Arcs GArcs;
+	private final Nodes GNodes;
+	private final Arcs GArcs;
 
 	public StoredDirectedMultiGraph(IEnvironment environment, DirectedMultigraph<Node, Arc> graph,
 									int[] starts, int[] offsets, int supportLength) {
@@ -62,7 +63,7 @@ public class StoredDirectedMultiGraph {
 		this.GNodes = new Nodes();
 		this.GArcs = new Arcs();
 
-		TIntHashSet[] sups = new TIntHashSet[supportLength];
+		IntSet[] sups = new IntSet[supportLength];
 		this.supports = new StoredIndexedBipartiteSetWithOffset[supportLength];
 
 
@@ -79,14 +80,14 @@ public class StoredDirectedMultiGraph {
 
 			int idx = starts[a.orig.layer] + a.value - offsets[a.orig.layer];
 			if (sups[idx] == null)
-				sups[idx] = new TIntHashSet();
+				sups[idx] = new IntOpenHashSet();
 			sups[idx].add(a.id);
 
 		}
 
 		for (int i = 0; i < sups.length; i++) {
 			if (sups[i] != null)
-				supports[i] = new StoredIndexedBipartiteSetWithOffset(environment, sups[i].toArray());
+				supports[i] = new StoredIndexedBipartiteSetWithOffset(environment, sups[i].toIntArray());
 		}
 
 		Set<Node> nodes = graph.vertexSet();
@@ -149,7 +150,7 @@ public class StoredDirectedMultiGraph {
 
 	private void removeArc(Propagator<IntVar> propagator) throws ContradictionException {
 		while (stack.size() > 0) {
-			int arcId = stack.pop();
+			int arcId = stack.popInt();
 
 			int orig = GArcs.origs[arcId];
 			int dest = GArcs.dests[arcId];

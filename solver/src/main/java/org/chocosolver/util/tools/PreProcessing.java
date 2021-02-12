@@ -9,7 +9,8 @@
  */
 package org.chocosolver.util.tools;
 
-import gnu.trove.map.hash.TIntIntHashMap;
+import it.unimi.dsi.fastutil.ints.Int2IntMap;
+import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.constraints.Constraint;
 import org.chocosolver.solver.constraints.ConstraintsName;
@@ -68,7 +69,7 @@ public class PreProcessing {
         // 2. get all integer variables and a map to their position in the array
         IntVar[] ivars = model.retrieveIntVars(true);
         int pos = 0;
-        TIntIntHashMap id2pos = new TIntIntHashMap();
+        Int2IntMap id2pos = new Int2IntOpenHashMap();
         for (IntVar i : ivars) {
             id2pos.put(i.getId(), pos++);
         }

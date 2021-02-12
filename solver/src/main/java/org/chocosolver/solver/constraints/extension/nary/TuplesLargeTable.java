@@ -9,10 +9,10 @@
  */
 package org.chocosolver.solver.constraints.extension.nary;
 
-import gnu.trove.map.hash.TIntObjectHashMap;
-import gnu.trove.set.TIntSet;
-import gnu.trove.set.hash.TIntHashSet;
-
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
+import it.unimi.dsi.fastutil.ints.IntSet;
 import org.chocosolver.solver.constraints.extension.Tuples;
 import org.chocosolver.solver.exception.SolverException;
 import org.chocosolver.solver.variables.IntVar;
@@ -33,7 +33,7 @@ public class TuplesLargeTable extends LargeRelation {
     /**
      * The consistency matrix
      */
-    private final TIntObjectHashMap<TIntSet> tables;
+    private final Int2ObjectMap<IntSet> tables;
 
     /**
      * lower bound of each variable
@@ -51,7 +51,7 @@ public class TuplesLargeTable extends LargeRelation {
      * in order to speed up the computation of the index of a tuple in the table, blocks[i] stores
      * the product of the size of variables j with j < i.
      */
-    private long[] blocks;
+    private final long[] blocks;
 
     public TuplesLargeTable(Tuples tuples, IntVar[] vars) {
         n = vars.length;
@@ -70,10 +70,10 @@ public class TuplesLargeTable extends LargeRelation {
                 totalSize = -1;
             }
         }
-        if ((totalSize / Integer.MAX_VALUE) + 1 < 0 || (totalSize / Integer.MAX_VALUE) + 1 > Integer.MAX_VALUE)
+        if ((totalSize / (Integer.MAX_VALUE*1.f)) + 1 < 0 || (totalSize / Integer.MAX_VALUE) + 1 > Integer.MAX_VALUE)
             throw new SolverException("Tuples required too much memory ...");
 
-        tables = new TIntObjectHashMap<>();
+        tables = new Int2ObjectOpenHashMap<>();
         int nt = tuples.nbTuples();
         for (int i = 0; i < nt; i++) {
             int[] tuple = tuples.get(i);
@@ -93,7 +93,7 @@ public class TuplesLargeTable extends LargeRelation {
         }
         int a = (int) (address % Integer.MAX_VALUE);
         int t = (int) (address / Integer.MAX_VALUE);
-        TIntSet ts = tables.get(t);
+        IntSet ts = tables.get(t);
         return ts != null && ts.contains(a);
     }
 
@@ -108,9 +108,9 @@ public class TuplesLargeTable extends LargeRelation {
         }
         int a = (int) (address % Integer.MAX_VALUE);
         int t = (int) (address / Integer.MAX_VALUE);
-        TIntSet ts = tables.get(t);
+        IntSet ts = tables.get(t);
         if (ts == null) {
-            ts = new TIntHashSet();
+            ts = new IntOpenHashSet();
             tables.put(t, ts);
         }
         ts.add(a);
@@ -120,8 +120,8 @@ public class TuplesLargeTable extends LargeRelation {
     public Tuples convert() {
         Tuples tuples = new Tuples(feasible);
         int[] tt = new int[lowerbounds.length];
-        for (TIntSet set : tables.valueCollection()) {
-            for (int add : set.toArray()) {
+        for (IntSet set : tables.values()) {
+            for (int add : set.toIntArray()) {
                 for (int i = (n - 1); i >= 0; i--) {
                     long t = add / blocks[i];
                     tt[i] = (int) (t + lowerbounds[i]);

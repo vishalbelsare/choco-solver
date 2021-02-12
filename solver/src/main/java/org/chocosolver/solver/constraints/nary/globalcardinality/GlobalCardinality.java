@@ -9,7 +9,8 @@
  */
 package org.chocosolver.solver.constraints.nary.globalcardinality;
 
-import gnu.trove.map.hash.TIntIntHashMap;
+import it.unimi.dsi.fastutil.ints.Int2IntMap;
+import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.constraints.Constraint;
 import org.chocosolver.solver.constraints.ConstraintsName;
@@ -32,9 +33,9 @@ public class GlobalCardinality extends Constraint {
     	super(ConstraintsName.GCC, createProp(vars, values, cards));
     }
 
-	private static Propagator createProp(IntVar[] vars, int[] values, IntVar[] cards) {
+	private static Propagator<IntVar> createProp(IntVar[] vars, int[] values, IntVar[] cards) {
 		assert values.length == cards.length;
-		TIntIntHashMap map = new TIntIntHashMap();
+		Int2IntMap map = new Int2IntOpenHashMap();
 		int idx = 0;
 		for (int v : values) {
 			if (!map.containsKey(v)) {

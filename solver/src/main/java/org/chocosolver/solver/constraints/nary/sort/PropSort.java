@@ -9,8 +9,7 @@
  */
 package org.chocosolver.solver.constraints.nary.sort;
 
-import gnu.trove.stack.TIntStack;
-import gnu.trove.stack.array.TIntArrayStack;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 import org.chocosolver.solver.constraints.Propagator;
 import org.chocosolver.solver.constraints.PropagatorPriority;
 import org.chocosolver.solver.exception.ContradictionException;
@@ -35,21 +34,23 @@ import java.util.Arrays;
 
 public final class PropSort extends Propagator<IntVar> {
 
-    private int n; // size of X, and obviously Y
+    private final int n; // size of X, and obviously Y
 
-    private PriorityQueue pQueue; // a priority queue
-    private IntVar[] x, y; // ref to X and Y, instead of vars
-    private int[] f, fPrime;
-    private int[][] xyGraph;
-    private int[] dfsNodes;
-    private int[] sccNumbers;
+    private final PriorityQueue pQueue; // a priority queue
+    private final IntVar[] x;
+    private final IntVar[] y; // ref to X and Y, instead of vars
+    private final int[] f;
+    private final int[] fPrime;
+    private final int[][] xyGraph;
+    private final int[] dfsNodes;
+    private final int[] sccNumbers;
     private int currentSccNumber;
-    private int[] tmpArray;
-    private int[][] sccSequences;
-    private TIntStack s1;
-    private Stack2 s2;
-    private int[] recupStack = new int[3];
-    private int[] recupStack2 = new int[3];
+    private final int[] tmpArray;
+    private final int[][] sccSequences;
+    private final IntArrayList s1;
+    private final Stack2 s2;
+    private final int[] recupStack = new int[3];
+    private final int[] recupStack2 = new int[3];
 
     /**
      * Creates a new <code>PropSort</code> instance.
@@ -74,7 +75,7 @@ public final class PropSort extends Propagator<IntVar> {
         this.sccNumbers = new int[this.n];
         this.tmpArray = new int[this.n];
         this.pQueue = new PriorityQueue(this.n);
-        this.s1 = new TIntArrayStack(this.n);
+        this.s1 = new IntArrayList(this.n);
         this.s2 = new Stack2(this.n);
     }
 
@@ -301,7 +302,7 @@ public final class PropSort extends Propagator<IntVar> {
         while (s1.size() > 0 && !s2.isEmpty()) {
             s2.peek(recupStack);
             do {
-                i = this.s1.pop();
+                i = this.s1.popInt();
                 this.sccNumbers[i] = currentSccNumber;
             } while (s1.size() > 0 && i != recupStack[0]);
             currentSccNumber++;
@@ -315,16 +316,9 @@ public final class PropSort extends Propagator<IntVar> {
         if (this.s2.isEmpty()) {
             this.s1.push(node);
             this.s2.push(node, node, x[f[node]].getUB());
-            i = 0;
-            while (xyGraph[node][i] != -1) {
-                if (dfsNodes[xyGraph[node][i]] == 0) {
-                    this.dfsVisit(xyGraph[node][i]);
-                }
-                i++;
-            }
         } else {
             while (this.s2.peek(this.recupStack) && this.recupStack[2] < y[node].getLB()) {// the topmost component cannot reach "node".
-                while ((i = this.s1.pop()) != this.recupStack[0]) {
+                while ((i = this.s1.popInt()) != this.recupStack[0]) {
                     this.sccNumbers[i] = currentSccNumber;
                 }
                 this.sccNumbers[i] = currentSccNumber;
@@ -336,31 +330,28 @@ public final class PropSort extends Propagator<IntVar> {
             this.recupStack[1] = node;
             this.recupStack[2] = this.x[this.f[node]].getUB();
             this.mergeStack(node);
-            i = 0;
-            while (xyGraph[node][i] != -1) {
-                if (dfsNodes[xyGraph[node][i]] == 0) {
-                    this.dfsVisit(xyGraph[node][i]);
-                }
-                i++;
+        }
+        i = 0;
+        while (xyGraph[node][i] != -1) {
+            if (dfsNodes[xyGraph[node][i]] == 0) {
+                this.dfsVisit(xyGraph[node][i]);
             }
+            i++;
         }
 
         this.dfsNodes[node] = 2;
     }
 
-    private boolean mergeStack(int node) {
+    private void mergeStack(int node) {
         this.s2.peek(this.recupStack2);
-        boolean flag = false;
         while (!this.s2.isEmpty() && y[this.recupStack2[1]].getUB() >= x[this.f[node]].getLB()) {
-            flag = true;
             this.recupStack[0] = this.recupStack2[0];
             this.recupStack[1] = node;
-            this.recupStack[2] = this.recupStack[2] > this.recupStack2[2] ? this.recupStack[2] : this.recupStack2[2];
+            this.recupStack[2] = Math.max(this.recupStack[2], this.recupStack2[2]);
             this.s2.pop();
             this.s2.peek(this.recupStack2);
         }
         this.s2.push(this.recupStack[0], this.recupStack[1], this.recupStack[2]);
-        return flag;
     }
 
 
@@ -370,10 +361,10 @@ public final class PropSort extends Propagator<IntVar> {
 
 
     private static class Stack2  {
-        private int[] roots;
-        private int[] rightMosts;
-        private int[] maxXs;
-        private int n;
+        private final int[] roots;
+        private final int[] rightMosts;
+        private final int[] maxXs;
+        private final int n;
         private int nbElts = 0;
 
         public Stack2(int _n) {

@@ -9,13 +9,7 @@
  */
 package org.chocosolver.solver.constraints.nary.sat;
 
-import static org.chocosolver.solver.constraints.nary.sat.PropNogoods.iseq;
-import static org.chocosolver.solver.constraints.nary.sat.PropNogoods.ivalue;
-import static org.chocosolver.solver.constraints.nary.sat.PropNogoods.leq;
-
-import gnu.trove.list.TIntList;
-import gnu.trove.list.array.TIntArrayList;
-import java.util.Random;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 import org.chocosolver.sat.SatSolver;
 import org.chocosolver.solver.Cause;
 import org.chocosolver.solver.Model;
@@ -27,6 +21,10 @@ import org.testng.Assert;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
+
+import java.util.Random;
+
+import static org.chocosolver.solver.constraints.nary.sat.PropNogoods.*;
 
 /**
  * Test class for PropNogoods
@@ -52,7 +50,7 @@ public class PropNogoodsTest {
         lits[4] = PNG.Literal(vars[2], 0, true);
         lits[5] = PNG.Literal(vars[2], 0, false);
         PNG.initialize();
-        TIntList list = new TIntArrayList();
+        IntArrayList list = new IntArrayList();
         list.add(SatSolver.negated(lits[0]));
         list.add(lits[1]);
         PNG.addNogood(list);
@@ -68,7 +66,7 @@ public class PropNogoodsTest {
     }
 
     @AfterMethod
-    public void tearDown() throws Exception {
+    public void tearDown() {
 
     }
 
@@ -83,7 +81,7 @@ public class PropNogoodsTest {
         Assert.assertEquals(vars[1].getDomainSize(), 3);
         Assert.assertEquals(vars[2].getDomainSize(), 3);
 
-        TIntList list = new TIntArrayList();
+        IntArrayList list = new IntArrayList();
         list.add(SatSolver.negated(lits[0]));
         list.add(lits[2]);
         PNG.addNogood(list);
@@ -105,7 +103,7 @@ public class PropNogoodsTest {
     @Test(groups="1s", timeOut=60000)
     public void testPropagate1() throws Exception {
         PNG.propagate(2);
-        TIntList list = new TIntArrayList();
+        IntArrayList list = new IntArrayList();
         list.add(SatSolver.negated(lits[0]));
         list.add(lits[2]);
         PNG.addNogood(list);
@@ -133,18 +131,18 @@ public class PropNogoodsTest {
     }
 
     @Test(groups="1s", timeOut=60000)
-    public void testIsEntailed2() throws Exception {
+    public void testIsEntailed2() {
         Assert.assertEquals(PNG.isEntailed(), ESat.UNDEFINED);
     }
 
     @Test(groups="1s", timeOut=60000)
     public void testLiteral1() throws Exception {
-        Assert.assertTrue(lits[0] == 1);
-        Assert.assertTrue(lits[1] == 3);
-        Assert.assertTrue(lits[2] == 5);
-        Assert.assertTrue(lits[3] == 7);
-        Assert.assertTrue(lits[4] == 9);
-        Assert.assertTrue(lits[5] == 11);
+        Assert.assertEquals(lits[0], 1);
+        Assert.assertEquals(lits[1], 3);
+        Assert.assertEquals(lits[2], 5);
+        Assert.assertEquals(lits[3], 7);
+        Assert.assertEquals(lits[4], 9);
+        Assert.assertEquals(lits[5], 11);
     }
 
     @Test(groups="1s", timeOut=60000)

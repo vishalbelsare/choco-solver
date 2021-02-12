@@ -7,17 +7,12 @@
  *
  * See LICENSE file in the project root for full license information.
  */
-/**
- * Created by IntelliJ IDEA.
- * User: Jean-Guillaume Fages
- * Date: 26/01/13
- * Time: 13:30
- */
 
 package org.chocosolver.solver.constraints.checker.fmk;
 
-import gnu.trove.list.array.TIntArrayList;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 
+import java.util.Collections;
 import java.util.Random;
 
 import static org.chocosolver.solver.constraints.checker.DomainBuilder.buildFullDomains;
@@ -72,11 +67,11 @@ public class Domain {
     public static Domain buildSetDomain(int ds, Random r, double density, boolean homogeneou) {
         int[] env = buildFullDomains(1, 0, ds, r, density, homogeneou)[0];
         int nbK = r.nextInt(env.length);
-        TIntArrayList l = new TIntArrayList(env);
-        l.shuffle(r);
+        IntArrayList l = new IntArrayList(env);
+        Collections.shuffle(l, r);
         int[] ker = new int[nbK];
         for (int i = 0; i < nbK; i++) {
-            ker[i] = l.get(i);
+            ker[i] = l.getInt(i);
         }
         return new Domain(env, ker);
     }

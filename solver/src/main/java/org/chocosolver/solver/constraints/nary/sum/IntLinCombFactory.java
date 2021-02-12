@@ -9,8 +9,8 @@
  */
 package org.chocosolver.solver.constraints.nary.sum;
 
-import gnu.trove.map.hash.TIntIntHashMap;
-
+import it.unimi.dsi.fastutil.ints.Int2IntMap;
+import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.constraints.Constraint;
 import org.chocosolver.solver.constraints.ConstraintsName;
@@ -109,7 +109,7 @@ public class IntLinCombFactory {
         int ldom = 0, lidx = -1;
         // 1. reduce coefficients and variables
         // a. first loop to detect constant and merge duplicate variable/coefficient
-        TIntIntHashMap map = new TIntIntHashMap(NVARS.length, 1.5f, -1, -1);
+        Int2IntMap map = new Int2IntOpenHashMap();
         for (int i = 0; i < NVARS.length; i++) {
             if (VariableUtils.isConstant(NVARS[i])) {
                 RESULT -= (long)NVARS[i].getValue() * NCOEFFS[i]; // potential overflow

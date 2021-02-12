@@ -9,11 +9,9 @@
  */
 package org.chocosolver.solver.constraints.nary.automata.structure.multicostregular;
 
-import gnu.trove.set.hash.TIntHashSet;
-import gnu.trove.stack.TIntStack;
-import java.util.Arrays;
-import java.util.BitSet;
-import java.util.Set;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
+import it.unimi.dsi.fastutil.ints.IntSet;
 import org.chocosolver.memory.IEnvironment;
 import org.chocosolver.solver.constraints.Propagator;
 import org.chocosolver.solver.constraints.nary.automata.FA.ICostAutomaton;
@@ -25,6 +23,10 @@ import org.chocosolver.util.iterators.DisposableIntIterator;
 import org.chocosolver.util.objects.StoredIndexedBipartiteSetWithOffset;
 import org.jgrapht.graph.DirectedMultigraph;
 
+import java.util.Arrays;
+import java.util.BitSet;
+import java.util.Set;
+
 /**
  * Created by IntelliJ IDEA.
  * User: julien
@@ -32,26 +34,27 @@ import org.jgrapht.graph.DirectedMultigraph;
  * Date: Nov 4, 2009
  * Time: 1:07:19 PM
  */
+@SuppressWarnings("DuplicatedCode")
 public class StoredDirectedMultiGraph {
 
-    private int[] starts;
-    private int[] offsets;
+    private final int[] starts;
+    private final int[] offsets;
 
     public int sourceIndex;
     public int tinIndex;
     public int nbR;
 
 
-    private StoredIndexedBipartiteSetWithOffset[] supports;
+    private final StoredIndexedBipartiteSetWithOffset[] supports;
     public StoredIndexedBipartiteSetWithOffset[] layers;
     private FastPathFinder pf;
     public BitSet inStack;
-    private IntVar[] z;
+    private final IntVar[] z;
 
     public Nodes GNodes;
     public Arcs GArcs;
 
-    public void delayedBoundUpdate(TIntStack toRemove, IntVar[] z, int... dim) {
+    public void delayedBoundUpdate(IntArrayList toRemove, IntVar[] z, int... dim) {
         for (int i = 0; i < offsets.length; i++) {
             DisposableIntIterator iter = this.layers[i].getIterator();
             while (iter.hasNext()) {
@@ -77,7 +80,7 @@ public class StoredDirectedMultiGraph {
         }
     }
 
-    public class Nodes {
+    public static class Nodes {
         public int[] states;
         public int[] layers;
         public StoredIndexedBipartiteSetWithOffset[] outArcs;
@@ -105,7 +108,7 @@ public class StoredDirectedMultiGraph {
 
     }
 
-    public class Arcs {
+    public static class Arcs {
         public int[] values;
         public int[] dests;
         public int[] origs;
@@ -131,7 +134,7 @@ public class StoredDirectedMultiGraph {
         this.GNodes = new Nodes();
         this.GArcs = new Arcs();
 
-        TIntHashSet[] sups = new TIntHashSet[supportLength];
+        IntSet[] sups = new IntSet[supportLength];
         this.supports = new StoredIndexedBipartiteSetWithOffset[supportLength];
 
 
@@ -161,7 +164,7 @@ public class StoredDirectedMultiGraph {
             if (a.orig.layer < starts.length) {
                 int idx = starts[a.orig.layer] + a.value - offsets[a.orig.layer];
                 if (sups[idx] == null)
-                    sups[idx] = new TIntHashSet();
+                    sups[idx] = new IntOpenHashSet();
                 sups[idx].add(a.id);
             }
 
@@ -169,7 +172,7 @@ public class StoredDirectedMultiGraph {
 
         for (int i = 0; i < sups.length; i++) {
             if (sups[i] != null)
-                supports[i] = new StoredIndexedBipartiteSetWithOffset(environment, sups[i].toArray());
+                supports[i] = new StoredIndexedBipartiteSetWithOffset(environment, sups[i].toIntArray());
         }
 
         Set<Node> nodes = graph.vertexSet();
@@ -258,7 +261,7 @@ public class StoredDirectedMultiGraph {
     }
 
 
-    public boolean removeArc(int arcId, TIntStack toRemove, TIntStack[] updateLeft, TIntStack[] updateRight,
+    public boolean removeArc(int arcId, IntArrayList toRemove, IntArrayList[] updateLeft, IntArrayList[] updateRight,
                              Propagator<IntVar> propagator) throws ContradictionException {
         inStack.clear(arcId);
         boolean needUpdate = false;
@@ -348,10 +351,10 @@ public class StoredDirectedMultiGraph {
 
     }
 
-    public void updateRight(TIntStack updateRight, TIntStack toRemove, int dim, boolean[] modBound,
+    public void updateRight(IntArrayList updateRight, IntArrayList toRemove, int dim, boolean[] modBound,
                             Propagator<IntVar> propagator) throws ContradictionException {
 
-        int nid = updateRight.pop();
+        int nid = updateRight.popInt();
         double tempPval = Double.POSITIVE_INFINITY;
         double tempPval2 = Double.NEGATIVE_INFINITY;
         int tempP = Integer.MIN_VALUE;
@@ -427,9 +430,9 @@ public class StoredDirectedMultiGraph {
     }
 
 
-    public void updateLeft(TIntStack updateLeft, TIntStack toRemove, int dim, boolean[] modBound,
+    public void updateLeft(IntArrayList updateLeft, IntArrayList toRemove, int dim, boolean[] modBound,
                            Propagator<IntVar> propagator) throws ContradictionException {
-        int nid = updateLeft.pop();
+        int nid = updateLeft.popInt();
         double tempPval = Double.POSITIVE_INFINITY;
         int tempP = Integer.MIN_VALUE;
 
@@ -581,7 +584,7 @@ public class StoredDirectedMultiGraph {
         return result;
     }
 
-    private int[] minmax = new int[2];
+    private final int[] minmax = new int[2];
 
     public int[] getMinMaxPathCostForAssignment(int layer, int value, int... resources) {
         minmax[0] = Integer.MAX_VALUE;

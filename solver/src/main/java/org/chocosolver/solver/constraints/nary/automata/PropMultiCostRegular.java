@@ -9,11 +9,12 @@
  */
 package org.chocosolver.solver.constraints.nary.automata;
 
-import gnu.trove.iterator.TIntIterator;
-import gnu.trove.map.hash.TObjectIntHashMap;
-import gnu.trove.set.hash.TIntHashSet;
-import gnu.trove.stack.TIntStack;
-import gnu.trove.stack.array.TIntArrayStack;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.ints.IntIterator;
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
+import it.unimi.dsi.fastutil.ints.IntSet;
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import org.chocosolver.memory.IEnvironment;
 import org.chocosolver.solver.constraints.Propagator;
 import org.chocosolver.solver.constraints.PropagatorPriority;
@@ -87,7 +88,7 @@ public final class PropMultiCostRegular extends Propagator<IntVar> {
     /**
      * Map to retrieve rapidly the index of a given variable.
      */
-    public final TObjectIntHashMap<IntVar> map;
+    public final Object2IntMap<IntVar> map;
 
     /**
      * Decision variables
@@ -141,15 +142,15 @@ public final class PropMultiCostRegular extends Propagator<IntVar> {
     /**
      * Stack to store removed edges index, for delayed update
      */
-    private final TIntStack toRemove;
+    private final IntArrayList toRemove;
 
-    private final TIntStack[] toUpdateLeft;
-    private final TIntStack[] toUpdateRight;
+    private final IntArrayList[] toUpdateLeft;
+    private final IntArrayList[] toUpdateRight;
 
     private int lastWorld = -1;
     private long lastNbOfBacktracks = -1;
     private long lastNbOfRestarts = -1;
-    private TIntHashSet boundUpdate;
+    private final IntArrayList boundUpdate;
     private boolean computed;
 
     private final IIntDeltaMonitor[] idms;
@@ -183,19 +184,19 @@ public final class PropMultiCostRegular extends Propagator<IntVar> {
         this.uUb = new double[2 * nbR];
         this.uLb = new double[2 * nbR];
 
-        this.map = new TObjectIntHashMap<>();
+        this.map = new Object2IntOpenHashMap<>();
         for (int i = 0; i < vars.length; i++) {
             this.map.put(vars[i], i);
         }
-        this.toRemove = new TIntArrayStack();
-        this.toUpdateLeft = new TIntArrayStack[nbR + 1];
-        this.toUpdateRight = new TIntArrayStack[nbR + 1];
+        this.toRemove = new IntArrayList();
+        this.toUpdateLeft = new IntArrayList[nbR + 1];
+        this.toUpdateRight = new IntArrayList[nbR + 1];
 
         for (int i = 0; i <= nbR; i++) {
-            this.toUpdateLeft[i] = new TIntArrayStack();
-            this.toUpdateRight[i] = new TIntArrayStack();
+            this.toUpdateLeft[i] = new IntArrayList();
+            this.toUpdateRight[i] = new IntArrayList();
         }
-        this.boundUpdate = new TIntHashSet();
+        this.boundUpdate = new IntArrayList();
         this.pi = cauto;
         rem_proc = new RemProc(this);
         vrms = new IntIterableBitSet();
@@ -283,38 +284,38 @@ public final class PropMultiCostRegular extends Propagator<IntVar> {
         }
 
         int i, j, k;
-        TIntIterator layerIter;
-        TIntIterator qijIter;
+        IntIterator layerIter;
+        IntIterator qijIter;
 
-        ArrayList<TIntHashSet> layer = new ArrayList<>();
-        TIntHashSet[] tmpQ = new TIntHashSet[totalSizes];
+        ArrayList<IntSet> layer = new ArrayList<>();
+        IntSet[] tmpQ = new IntSet[totalSizes];
         // DLList[vars.length+1];
 
         for (i = 0; i <= n; i++) {
-            layer.add(new TIntHashSet());// = new DLList(nbNodes);
+            layer.add(new IntOpenHashSet());// = new DLList(nbNodes);
         }
 
         //forward pass, construct all paths described by the automaton for word of length nbVars.
         layer.get(0).add(pi.getInitialState());
-        TIntHashSet nexts = new TIntHashSet();
+        IntSet nexts = new IntOpenHashSet();
 
         for (i = 0; i < n; i++) {
             int UB = vs[i].getUB();
             for (j = vs[i].getLB(); j <= UB; j = vs[i].nextValue(j)) {
                 layerIter = layer.get(i).iterator();//getIterator();
                 while (layerIter.hasNext()) {
-                    k = layerIter.next();
+                    k = layerIter.nextInt();
                     nexts.clear();
                     pi.delta(k, j, nexts);
-                    TIntIterator it = nexts.iterator();
-                    for (; it.hasNext(); ) {
-                        int succ = it.next();
+                    IntIterator it = nexts.iterator();
+                    while (it.hasNext()) {
+                        int succ = it.nextInt();
                         layer.get(i + 1).add(succ);
                     }
                     if (!nexts.isEmpty()) {
                         int idx = starts[i] + j - offsets[i];
                         if (tmpQ[idx] == null)
-                            tmpQ[idx] = new TIntHashSet();
+                            tmpQ[idx] = new IntOpenHashSet();
 
                         tmpQ[idx].add(k);
 
@@ -326,7 +327,7 @@ public final class PropMultiCostRegular extends Propagator<IntVar> {
         //removing reachable non accepting states
         layerIter = layer.get(n).iterator();
         while (layerIter.hasNext()) {
-            k = layerIter.next();
+            k = layerIter.nextInt();
             if (pi.isNotFinal(k)) {
                 layerIter.remove();
             }
@@ -346,18 +347,18 @@ public final class PropMultiCostRegular extends Propagator<IntVar> {
             int UB = vs[i].getUB();
             for (j = vs[i].getLB(); j <= UB; j = vs[i].nextValue(j)) {
                 int idx = starts[i] + j - offsets[i];
-                TIntHashSet l = tmpQ[idx];
+                IntSet l = tmpQ[idx];
                 if (l != null) {
                     qijIter = l.iterator();
                     while (qijIter.hasNext()) {
-                        k = qijIter.next();
+                        k = qijIter.nextInt();
                         nexts.clear();
                         pi.delta(k, j, nexts);
                         if (nexts.size() > 1)
                             System.err.println("STOP");
                         boolean added = false;
-                        for (TIntIterator it = nexts.iterator(); it.hasNext(); ) {
-                            int qn = it.next();
+                        for (IntIterator it = nexts.iterator(); it.hasNext(); ) {
+                            int qn = it.nextInt();
 
                             if (layer.get(i + 1).contains(qn)) {
                                 added = true;
@@ -392,11 +393,11 @@ public final class PropMultiCostRegular extends Propagator<IntVar> {
 
             // If no more arcs go out of a given state in the layer, then we remove the state from that layer
             while (layerIter.hasNext())
-                if (!mark.get(layerIter.next()))
+                if (!mark.get(layerIter.nextInt()))
                     layerIter.remove();
         }
 
-        TIntHashSet th = new TIntHashSet();
+        IntSet th = new IntOpenHashSet();
         int[][] intLayer = new int[n + 2][];
         for (k = 0; k < pi.getNbStates(); k++) {
             Node o = in[n * pi.getNbStates() + k];
@@ -417,7 +418,7 @@ public final class PropMultiCostRegular extends Propagator<IntVar> {
                     th.add(o.id);
                 }
             }
-            intLayer[i] = th.toArray();
+            intLayer[i] = th.toIntArray();
         }
         intLayer[n + 1] = new int[]{tink.id};
 
@@ -446,6 +447,7 @@ public final class PropMultiCostRegular extends Propagator<IntVar> {
      *
      * @throws ContradictionException if a domain becomes empty
      */
+    @SuppressWarnings("DuplicatedCode")
     protected void updateUpperBound() throws ContradictionException {
         int k = 0;
         double uk;
@@ -505,6 +507,7 @@ public final class PropMultiCostRegular extends Propagator<IntVar> {
                 }
                 newLB = Math.max(uUb[l] - uk * (z[l + 1].getUB() - axu), 0);
                 newLA = Math.max(uUb[l + nbR] - uk * (axu - z[l + 1].getLB()), 0);
+                //noinspection DuplicatedCode
                 if (Math.abs(uUb[l] - newLB) >= _MCR_DECIMAL_PREC) {
                     uUb[l] = newLB;
                     modif = true;
@@ -526,6 +529,7 @@ public final class PropMultiCostRegular extends Propagator<IntVar> {
      *
      * @throws ContradictionException if a domain becomes empty
      */
+    @SuppressWarnings("DuplicatedCode")
     protected void updateLowerBound() throws ContradictionException {
 
 
@@ -543,6 +547,7 @@ public final class PropMultiCostRegular extends Propagator<IntVar> {
         int nbNSig = 0;
         int nbNSig2 = 0;
         //  Arrays.fill(uLb,0.0);
+        //noinspection MismatchedReadAndWriteOfArray
         int[] bestPath = new int[offset + 1];
         do {
             coeff = 0.0;
@@ -709,7 +714,7 @@ public final class PropMultiCostRegular extends Propagator<IntVar> {
             //while (toRemove.size() > 0)
             {
                 while (toRemove.size() > 0) {
-                    int n = toRemove.pop();
+                    int n = toRemove.popInt();
 //                    needUpdate =
                     this.graph.removeArc(n, toRemove, toUpdateLeft, toUpdateRight, this);
                     // modifiedBound[0] = modifiedBound[1]  = true;
@@ -759,7 +764,7 @@ public final class PropMultiCostRegular extends Propagator<IntVar> {
 
 
     private boolean remContains(int e) {
-        int[] element = toRemove.toArray();
+        int[] element = toRemove.toIntArray();
         for (int i = 0; i < toRemove.size(); i++)
             if (element[i] == e)
                 return true;
@@ -777,9 +782,9 @@ public final class PropMultiCostRegular extends Propagator<IntVar> {
         }
     }
 
-    private void delayedBoundUpdate() throws ContradictionException {
+    private void delayedBoundUpdate() {
         if (!computed && boundUpdate.size() > 0) {
-            this.getGraph().delayedBoundUpdate(toRemove, z, boundUpdate.toArray());
+            this.getGraph().delayedBoundUpdate(toRemove, z, boundUpdate.toIntArray());
             boundUpdate.clear();
         }
     }
@@ -788,6 +793,7 @@ public final class PropMultiCostRegular extends Propagator<IntVar> {
         checkWorld();
     }
 
+    @SuppressWarnings("unused")
     public final boolean needPropagation() {
         int currentworld = model.getEnvironment().getWorldIndex();
         long currentbt = model.getSolver().getBackTrackCount();
@@ -903,10 +909,12 @@ public final class PropMultiCostRegular extends Propagator<IntVar> {
         return check(word);
     }
 
+    @SuppressWarnings("unused")
     public int getMinPathCostForAssignment(int col, int val, int... resources) {
         return this.graph.getMinPathCostForAssignment(col, val, resources);
     }
 
+    @SuppressWarnings("unused")
     public int[] getMinMaxPathCostForAssignment(int col, int val, int... resources) {
         return this.graph.getMinMaxPathCostForAssignment(col, val, resources);
     }
@@ -919,6 +927,7 @@ public final class PropMultiCostRegular extends Propagator<IntVar> {
         return this.graph.getInstantiatedLayerCosts(layer);
     }
 
+    @SuppressWarnings("unused")
     public void forcePathRecomputation() throws ContradictionException {
         lastWorld = Integer.MAX_VALUE;
         checkWorld();
@@ -935,13 +944,13 @@ public final class PropMultiCostRegular extends Propagator<IntVar> {
         }
 
         @Override
-        public UnaryIntProcedure set(Integer idxVar) {
+        public UnaryIntProcedure<Integer> set(Integer idxVar) {
             this.idxVar = idxVar;
             return this;
         }
 
         @Override
-        public void execute(int i) throws ContradictionException {
+        public void execute(int i) {
             StoredIndexedBipartiteSet support = p.graph.getUBport(idxVar, i);
             if (support != null) {
                 final int[] list = support._getStructure();

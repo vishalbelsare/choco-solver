@@ -9,7 +9,7 @@
  */
 package org.chocosolver.solver.search.loop.lns.neighbors;
 
-import gnu.trove.list.array.TIntArrayList;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 import org.chocosolver.solver.Solution;
 import org.chocosolver.solver.exception.ContradictionException;
 import org.chocosolver.solver.variables.SetVar;
@@ -27,12 +27,12 @@ import java.util.Random;
 public class SetRandomNeighbor implements INeighbor {
 
     protected final SetVar var;
-    protected final TIntArrayList value;
+    protected final IntArrayList value;
     protected final Random rd = new Random(0);
 
     public SetRandomNeighbor(SetVar variable) {
         this.var = variable;
-        this.value = new TIntArrayList();
+        this.value = new IntArrayList();
     }
 
     @Override
@@ -46,7 +46,7 @@ public class SetRandomNeighbor implements INeighbor {
     @Override
     public void fixSomeVariables() throws ContradictionException {
         for(int k=0; k<value.size(); k++){
-            if(rd.nextBoolean())var.force(value.get(k), this);
+            if(rd.nextBoolean())var.force(value.getInt(k), this);
         }
         for (int i:var.getLB()) {
             if(!var.getLB().contains(i) && rd.nextBoolean()){

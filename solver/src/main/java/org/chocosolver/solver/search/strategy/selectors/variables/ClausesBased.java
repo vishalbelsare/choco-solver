@@ -9,7 +9,8 @@
  */
 package org.chocosolver.solver.search.strategy.selectors.variables;
 
-import gnu.trove.map.hash.TObjectDoubleHashMap;
+import it.unimi.dsi.fastutil.objects.Object2DoubleMap;
+import it.unimi.dsi.fastutil.objects.Object2DoubleOpenHashMap;
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.Solver;
 import org.chocosolver.solver.search.loop.monitors.IMonitorInitialize;
@@ -31,7 +32,7 @@ import java.util.function.ToIntFunction;
  */
 public class ClausesBased extends AbstractStrategy<IntVar> implements IMonitorInitialize {
 
-    protected TObjectDoubleHashMap<IntVar> activity;
+    protected Object2DoubleMap<IntVar> activity;
 
     Solver solver;
 
@@ -53,7 +54,7 @@ public class ClausesBased extends AbstractStrategy<IntVar> implements IMonitorIn
         super(decisions);
         solver = model.getSolver();
         this.valueSelector = valueSelector;
-        activity = new TObjectDoubleHashMap<>(16, 1.5f, 0.d);
+        activity = new Object2DoubleOpenHashMap<>();
         for(IntVar v : decisions){
             activity.put(v, 1d);
         }
@@ -72,14 +73,14 @@ public class ClausesBased extends AbstractStrategy<IntVar> implements IMonitorIn
     }
 
     public void bump(IntVar v) {
-        activity.adjustOrPutValue(v, var_inc, 1.0);
+        activity.computeDouble(v, (k, d) -> d == null ? var_inc : 1.0);
     }
 
     public void decayActivity() {
         if ((var_inc *= 1.05) > 1e100) {
-            for (Object v : activity.keys()) {
-                double act = activity.get(v);
-                activity.adjustValue((IntVar)v, act * 1e-100);
+            for (Object v : activity.keySet()) {
+                double act = activity.getDouble(v);
+                activity.put((IntVar)v, act * 1e-100);
             }
             var_inc *= 1e-100;
         }
@@ -90,7 +91,7 @@ public class ClausesBased extends AbstractStrategy<IntVar> implements IMonitorIn
         IntVar best = null;
         bests.clear();
         final double[] bst = {Integer.MIN_VALUE};
-        activity.forEachEntry((var,act) -> {
+        activity.forEach((var,act) -> {
             if(!var.isInstantiated()){
                 if (act >= bst[0]) {
                     if (act > bst[0]) {
@@ -100,7 +101,6 @@ public class ClausesBased extends AbstractStrategy<IntVar> implements IMonitorIn
                     bests.add(var);
                 }
             }
-            return true;
         });
         if (bests.size() > 0) {
             best = bests.get(0);

@@ -9,13 +9,15 @@
  */
 package org.chocosolver.solver.constraints.nary.sat;
 
-import gnu.trove.map.hash.TIntIntHashMap;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
+import it.unimi.dsi.fastutil.ints.Int2IntMap;
+import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.search.loop.monitors.NogoodFromRestarts;
 import org.chocosolver.solver.variables.Variable;
+
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 
 /**
  * This class manages no-goods sharing among models involved in a {@link
@@ -60,7 +62,7 @@ public class NogoodStealer {
      * @implSpec This is a strong assumption that all models are equivalent (ie, each variable
      * has the same ID among models).
      */
-    private final TIntIntHashMap id2pos;
+    private final Int2IntMap id2pos;
 
     /**
      * Create a class that steal nogoods (based on decision path) from models and store them in
@@ -68,12 +70,13 @@ public class NogoodStealer {
      */
     public NogoodStealer() {
         this.models = new ArrayList<>();
-        this.id2pos = new TIntIntHashMap(10,.5f,-1,-1);
+        this.id2pos = new Int2IntOpenHashMap();
+        this.id2pos.defaultReturnValue(-1);
     }
 
     /**
      * Add a model to steal nogood from (based on decision path)
-     * @param model
+     * @param model target model
      */
     public void add(Model model) {
         assert valid(model): "Cannot share nogoods between non equivalent models";
@@ -132,7 +135,7 @@ public class NogoodStealer {
     /**
      * Adapted from {@link java.util.Arrays#binarySearch(Object[], Object, Comparator)}
      */
-    private static <T> int binarySearch(Model model, int key) {
+    private static int binarySearch(Model model, int key) {
         int low = 0;
         int high = model.getNbVars();
 

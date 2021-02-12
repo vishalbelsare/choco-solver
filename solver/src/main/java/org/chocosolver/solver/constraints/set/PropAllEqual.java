@@ -7,16 +7,9 @@
  *
  * See LICENSE file in the project root for full license information.
  */
-/**
- * Created by IntelliJ IDEA.
- * User: Jean-Guillaume Fages
- * Date: 14/01/13
- * Time: 16:36
- */
-
 package org.chocosolver.solver.constraints.set;
 
-import gnu.trove.list.array.TIntArrayList;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 import org.chocosolver.solver.constraints.Propagator;
 import org.chocosolver.solver.constraints.PropagatorPriority;
 import org.chocosolver.solver.exception.ContradictionException;
@@ -39,9 +32,10 @@ public class PropAllEqual extends Propagator<SetVar> {
     // VARIABLES
     //***********************************************************************************
 
-    private int n;
-    private ISetDeltaMonitor[] sdm;
-    private IntProcedure elementForced, elementRemoved;
+    private final int n;
+    private final ISetDeltaMonitor[] sdm;
+    private final IntProcedure elementForced;
+    private final IntProcedure elementRemoved;
 
     //***********************************************************************************
     // CONSTRUCTORS
@@ -79,7 +73,7 @@ public class PropAllEqual extends Propagator<SetVar> {
     @Override
     public void propagate(int evtmask) throws ContradictionException {
         if (PropagatorEventType.isFullPropagation(evtmask)) {
-			TIntArrayList toRemove = new TIntArrayList();
+			IntArrayList toRemove = new IntArrayList();
             ISetIterator iter = vars[0].getUB().iterator();
             while (iter.hasNext()){
                 int j = iter.nextInt();

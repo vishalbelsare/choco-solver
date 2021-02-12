@@ -9,8 +9,8 @@
  */
 package org.chocosolver.solver.constraints.nary.globalcardinality;
 
-import gnu.trove.list.array.TIntArrayList;
-import gnu.trove.map.hash.TIntIntHashMap;
+import it.unimi.dsi.fastutil.ints.Int2IntMap;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 import org.chocosolver.solver.constraints.Propagator;
 import org.chocosolver.solver.constraints.PropagatorPriority;
 import org.chocosolver.solver.exception.ContradictionException;
@@ -35,12 +35,14 @@ public class PropFastGCC extends Propagator<IntVar> {
     // VARIABLES
     //***********************************************************************************
 
-    private int n, n2;
-    private int[] values;
-    private ISet[] possibles, mandatories;
-    private ISet valueToCompute;
-    private TIntIntHashMap map;
-    private TIntArrayList boundVar;
+    private final int n;
+    private final int n2;
+    private final int[] values;
+    private final ISet[] possibles;
+    private final ISet[] mandatories;
+    private final ISet valueToCompute;
+    private final Int2IntMap map;
+    private final IntArrayList boundVar;
 
     //***********************************************************************************
     // CONSTRUCTORS
@@ -55,7 +57,7 @@ public class PropFastGCC extends Propagator<IntVar> {
      * @param map mapping
      * @param valueCardinalities array of integer variables
      */
-    public PropFastGCC(IntVar[] decvars, int[] restrictedValues, TIntIntHashMap map, IntVar[] valueCardinalities) {
+    public PropFastGCC(IntVar[] decvars, int[] restrictedValues, Int2IntMap map, IntVar[] valueCardinalities) {
         super(ArrayUtils.append(decvars, valueCardinalities), PropagatorPriority.LINEAR, false);
         if (restrictedValues.length != valueCardinalities.length) {
             throw new UnsupportedOperationException();
@@ -71,7 +73,7 @@ public class PropFastGCC extends Propagator<IntVar> {
             possibles[idx] = SetFactory.makeStoredSet(SetType.BITSET, 0, model);
         }
         this.valueToCompute = SetFactory.makeStoredSet(SetType.BITSET, 0, model);
-        this.boundVar = new TIntArrayList();
+        this.boundVar = new IntArrayList();
         for (int i = 0; i < n; i++) {
             if (!vars[i].hasEnumeratedDomain()) {
                 boundVar.add(i);
@@ -162,7 +164,7 @@ public class PropFastGCC extends Propagator<IntVar> {
     private boolean filterBounds() throws ContradictionException {
         boolean useful = false;
         for (int i = 0; i < boundVar.size(); i++) {
-            int var = boundVar.get(i);
+            int var = boundVar.getInt(i);
             if (!vars[var].isInstantiated()) {
                 int lb = vars[var].getLB();
                 int index = -1;

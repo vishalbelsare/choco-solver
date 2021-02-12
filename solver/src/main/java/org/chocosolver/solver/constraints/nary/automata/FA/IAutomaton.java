@@ -10,7 +10,7 @@
 package org.chocosolver.solver.constraints.nary.automata.FA;
 
 
-import gnu.trove.set.hash.TIntHashSet;
+import it.unimi.dsi.fastutil.ints.IntSet;
 
 import java.util.List;
 
@@ -33,7 +33,7 @@ public interface IAutomaton extends Cloneable {
 
     int delta(int k, int j) throws NonDeterministicOperationException;
 
-    void delta(int k, int j, TIntHashSet nexts);
+    void delta(int k, int j, IntSet nexts);
 
     boolean isFinal(int k);
 

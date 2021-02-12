@@ -40,9 +40,9 @@ module org.chocosolver.solver {
     exports org.chocosolver.solver.constraints.nary.automata;
     exports org.chocosolver.solver.constraints.nary.automata.FA;
     //exports org.chocosolver.solver.constraints.nary.automata.FA.utils;
-    //exports org.chocosolver.solver.constraints.nary.automata.structure;
-    //exports org.chocosolver.solver.constraints.nary.automata.structure.multicostregular;
-    //exports org.chocosolver.solver.constraints.nary.automata.structure.costregular;
+    exports org.chocosolver.solver.constraints.nary.automata.structure;
+    exports org.chocosolver.solver.constraints.nary.automata.structure.multicostregular;
+    exports org.chocosolver.solver.constraints.nary.automata.structure.costregular;
     //exports org.chocosolver.solver.constraints.nary.automata.structure.regular;
     exports org.chocosolver.solver.constraints.nary.binPacking;
     exports org.chocosolver.solver.constraints.nary.channeling;
@@ -97,7 +97,7 @@ module org.chocosolver.solver {
     exports org.chocosolver.solver.search.strategy.strategy;
     exports org.chocosolver.solver.variables;
     exports org.chocosolver.solver.variables.delta;
-    //exports org.chocosolver.solver.variables.delta.monitor;
+    exports org.chocosolver.solver.variables.delta.monitor;
     exports org.chocosolver.solver.variables.events;
     exports org.chocosolver.solver.variables.impl;
     //exports org.chocosolver.solver.variables.impl.scheduler;
@@ -124,12 +124,12 @@ module org.chocosolver.solver {
     exports org.chocosolver.util.sort;
     exports org.chocosolver.util.tools;
 
-    requires trove4j;
+    requires it.unimi.dsi.fastutil;
     requires org.chocosolver.sat;
     requires org.jgrapht.core;
     requires cpprof.java;
     requires java.desktop;
-    requires xchart;
+    requires org.knowm.xchart;
     requires java.management;
     requires automaton;
 

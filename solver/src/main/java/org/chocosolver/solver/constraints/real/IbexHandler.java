@@ -9,9 +9,10 @@
  */
 package org.chocosolver.solver.constraints.real;
 
-import gnu.trove.list.TDoubleList;
-import gnu.trove.list.array.TDoubleArrayList;
-import gnu.trove.map.hash.TObjectIntHashMap;
+import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
+import it.unimi.dsi.fastutil.doubles.DoubleList;
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import org.chocosolver.solver.Cause;
 import org.chocosolver.solver.ICause;
 import org.chocosolver.solver.constraints.Propagator;
@@ -55,19 +56,19 @@ public class IbexHandler {
      * Store for each function declared, the index of the corresponding contractor in Ibex. Since
      * Ibex instance is lazily created, the mapping can be dynamically updated.
      */
-    private TObjectIntHashMap<RealPropagator> ibexCtr = new TObjectIntHashMap<>(16, 0.5f, -1);
+    private final Object2IntMap<RealPropagator> ibexCtr = new Object2IntOpenHashMap<>();
     /**
      * Store, for each function declared, indices of the associated variables.
      */
-    private TObjectIntHashMap<Variable> ibexVar = new TObjectIntHashMap<>(16, 0.5f, -1);
+    private final Object2IntMap<Variable> ibexVar = new Object2IntOpenHashMap<>();
     /**
      * List of all variables known by Ibex
      */
-    private List<Variable> vars = new ArrayList<>();
+    private final List<Variable> vars = new ArrayList<>();
     /**
      * Each boolean indicates whether a variable is integral or not.
      */
-    private TDoubleList precisions = new TDoubleArrayList();
+    private final DoubleList precisions = new DoubleArrayList();
     /**
      * Each boolean indicates whether a variable is integral or not.
      */
@@ -135,7 +136,7 @@ public class IbexHandler {
      * @param prop propagator that manages the function
      */
     public void remove(RealPropagator prop) {
-        ibexCtr.remove(prop);
+        ibexCtr.removeInt(prop);
         hasChanged = true;
     }
 
@@ -155,10 +156,10 @@ public class IbexHandler {
             int result;
             if (contractionRatio == Ibex.RATIO) {
                 // Compatibility with ibex version previous to 2.8.8
-                result = mIbex.contract(ibexCtr.get(prop), domains, reif);
+                result = mIbex.contract(ibexCtr.getInt(prop), domains, reif);
             } else {
                 // What's the best way to inform the user to update to ibex 2.8.8?
-                result = mIbex.contract(ibexCtr.get(prop), domains, reif, contractionRatio);
+                result = mIbex.contract(ibexCtr.getInt(prop), domains, reif, contractionRatio);
             }
             switch (result) {
                 case Ibex.FAIL:
@@ -261,6 +262,7 @@ public class IbexHandler {
         this.contractionRatio = ratio;
     }
 
+    @SuppressWarnings("unused")
     public boolean isPreserveRounding() {
         return preserveRounding;
     }
@@ -270,7 +272,7 @@ public class IbexHandler {
      * Java rounding method when coming back from Ibex, which is
      * transparent for Java but causes a little loss of efficiency.
      *
-     * @param preserveRounding
+     * @param preserveRounding indicates if Ibex preserves rounding
      */
     public void setPreserveRounding(boolean preserveRounding) {
         this.preserveRounding = preserveRounding;
@@ -355,7 +357,7 @@ public class IbexHandler {
         for (int i = 0; i < props.length; i++) {
             for (int j = 0; j < props[i].getNbVars() - (props[i].reified != null ? 1 : 0); j++) {
                 Variable var = props[i].getVar(j);
-                if (!ibexVar.contains(var)) {
+                if (!ibexVar.containsKey(var)) {
                     ibexVar.put(var, vars.size());
                     vars.add(var);
                     precisions.add(VariableUtils.isReal(var) ? ((RealVar) var).getPrecision() : -1);
@@ -364,9 +366,9 @@ public class IbexHandler {
         }
         if (preserveRounding == Ibex.PRESERVE_ROUNDING) {
             // For backwards compatibility
-            ibex = new Ibex(precisions.toArray());
+            ibex = new Ibex(precisions.toDoubleArray());
         } else {
-            ibex = new Ibex(precisions.toArray(), preserveRounding);
+            ibex = new Ibex(precisions.toDoubleArray(), preserveRounding);
         }
         int k = 0;
         // first pass to modify functions wrt to variables
@@ -375,7 +377,7 @@ public class IbexHandler {
             for (int j = 0; j < props[i].getNbVars() - (props[i].reified != null ? 1 : 0); j++) {
                 fct = fct.replaceAll(
                         "\\{" + j + "\\}",
-                        "{_" + ibexVar.get(props[i].getVar(j)) + "}");
+                        "{_" + ibexVar.getInt(props[i].getVar(j)) + "}");
             }
             ibexCtr.put(props[i], k++);
             ibex.add_ctr(p1.matcher(fct).replaceAll("{"));

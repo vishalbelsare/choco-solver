@@ -9,7 +9,7 @@
  */
 package org.chocosolver.solver.constraints.nary.cumulative;
 
-import gnu.trove.list.array.TIntArrayList;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 import org.chocosolver.solver.constraints.Propagator;
 import org.chocosolver.solver.exception.ContradictionException;
 import org.chocosolver.solver.variables.IntVar;
@@ -45,8 +45,8 @@ public class SweepCumulFilter extends CumulFilter {
 	// > 0 duration subset
 	protected final ISet tasksToUSe;
 	protected boolean FIXPOINT = true;
-	protected TIntArrayList temp = new TIntArrayList();
-	protected TIntArrayList tprune = new TIntArrayList();
+	protected IntArrayList temp = new IntArrayList();
+	protected IntArrayList tprune = new IntArrayList();
 	protected ArraySort<Event> sort;
 	protected Comparator<Event> eventComparator;
 
@@ -165,7 +165,7 @@ public class SweepCumulFilter extends CumulFilter {
 		sort.sort(events,nbEvents,eventComparator);
 		int timeIndex = 0;
 		int currentDate = events[timeIndex].date;
-		tprune.resetQuick();
+		tprune.clear();
 		int capa = capamax.getUB();
 		int currentConso = 0;
 		boolean active = false;
@@ -175,9 +175,9 @@ public class SweepCumulFilter extends CumulFilter {
 			// pruning
 			if(currentDate<nextDate) {
 				assert currentConso<=capa;
-				temp.resetQuick();
+				temp.clear();
 				for(int i=tprune.size()-1;i>=0;i--){
-					int index = tprune.get(i);
+					int index = tprune.getInt(i);
 					// task min start might be filtered
 					if(currentDate< sub[index] || sub[index]>= elb[index]){
 						// the current task should overlap the current event
@@ -195,9 +195,9 @@ public class SweepCumulFilter extends CumulFilter {
 						}
 					}
 				}
-				tprune.resetQuick();
+				tprune.clear();
 				for(int i=temp.size()-1;i>=0;i--){
-					tprune.add(temp.getQuick(i));
+					tprune.add(temp.getInt(i));
 				}
 			}
 			// handle the current event

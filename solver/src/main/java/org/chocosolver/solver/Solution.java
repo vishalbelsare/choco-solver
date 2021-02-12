@@ -9,20 +9,19 @@
  */
 package org.chocosolver.solver;
 
-import gnu.trove.map.hash.TIntIntHashMap;
-import gnu.trove.map.hash.TIntObjectHashMap;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import it.unimi.dsi.fastutil.ints.Int2IntMap;
+import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import org.chocosolver.memory.IEnvironment;
 import org.chocosolver.solver.exception.ContradictionException;
 import org.chocosolver.solver.exception.SolverException;
 import org.chocosolver.solver.propagation.PropagationEngine;
-import org.chocosolver.solver.variables.BoolVar;
-import org.chocosolver.solver.variables.IntVar;
-import org.chocosolver.solver.variables.RealVar;
-import org.chocosolver.solver.variables.SetVar;
-import org.chocosolver.solver.variables.Variable;
+import org.chocosolver.solver.variables.*;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * Class which stores the value of each variable in a solution <br/>
@@ -37,11 +36,6 @@ public class Solution implements ICause {
     // VARIABLES
     //***********************************************************************************
 
-    /**
-     * No entry value for maps
-     */
-    private static final int NO_ENTRY = Integer.MAX_VALUE;
-
     // SOLUTION
     /**
      * Set to <tt>true</tt> when this object is empty
@@ -50,21 +44,21 @@ public class Solution implements ICause {
     /**
      * Maps of value for integer variable (id - value)
      */
-    private TIntIntHashMap intmap;
+    private Int2IntMap intmap;
     /**
      * Maps of value for real variable (id - value)
      */
-    private TIntObjectHashMap<double[]> realmap;
+    private Int2ObjectMap<double[]> realmap;
     /**
      * Maps of value for set variable (id - values)
      */
-    private TIntObjectHashMap<int[]> setmap;
+    private Int2ObjectMap<int[]> setmap;
 
     // INPUT
     /**
      * Model to store
      */
-    private Model model;
+    private final Model model;
     /**
      * Variables to store;
      */
@@ -122,22 +116,21 @@ public class Solution implements ICause {
                         case Variable.INT:
                         case Variable.BOOL:
                             if (intmap == null) {
-                                intmap = new TIntIntHashMap(16, .5f, Solution.NO_ENTRY,
-                                    Solution.NO_ENTRY);
+                                intmap = new Int2IntOpenHashMap();
                             }
                             IntVar v = (IntVar) var;
                             intmap.put(v.getId(), v.getValue());
                             break;
                         case Variable.REAL:
                             if (realmap == null) {
-                                realmap = new TIntObjectHashMap<>(16, 05f, Solution.NO_ENTRY);
+                                realmap = new Int2ObjectOpenHashMap<>();
                             }
                             RealVar r = (RealVar) var;
                             realmap.put(r.getId(), new double[]{r.getLB(), r.getUB()});
                             break;
                         case Variable.SET:
                             if (setmap == null) {
-                                setmap = new TIntObjectHashMap<>(16, 05f, Solution.NO_ENTRY);
+                                setmap = new Int2ObjectOpenHashMap<>();
                             }
                             SetVar s = (SetVar) var;
                             setmap.put(s.getId(), s.getValue().toArray());
@@ -200,13 +193,13 @@ public class Solution implements ICause {
         Solution ret = new Solution(model, varsToStore);
         ret.empty = empty;
         if (intmap != null) {
-            ret.intmap = new TIntIntHashMap(intmap);
+            ret.intmap = new Int2IntOpenHashMap(intmap);
         }
         if (realmap != null) {
-            ret.realmap = new TIntObjectHashMap<>(realmap);
+            ret.realmap = new Int2ObjectOpenHashMap<>(realmap);
         }
         if (setmap != null) {
-            ret.setmap = new TIntObjectHashMap<>(setmap);
+            ret.setmap = new Int2ObjectOpenHashMap<>(setmap);
         }
         return ret;
     }
@@ -243,10 +236,11 @@ public class Solution implements ICause {
      * @param var IntVar (or BoolVar)
      * @param val its value
      */
+    @SuppressWarnings("unused")
     public void setIntVal(IntVar var, int val) {
         empty = false;
         if (intmap == null) {
-            intmap = new TIntIntHashMap(16, .5f, Solution.NO_ENTRY, Solution.NO_ENTRY);
+            intmap = new Int2IntOpenHashMap();
         }
         intmap.put(var.getId(), val);
     }
@@ -281,10 +275,11 @@ public class Solution implements ICause {
      * @param var SetVar
      * @param val its value
      */
+    @SuppressWarnings("unused")
     public void setSetVal(SetVar var, int[] val) {
         empty = false;
         if (setmap == null) {
-            setmap = new TIntObjectHashMap<>(16, 05f, Solution.NO_ENTRY);
+            setmap = new Int2ObjectOpenHashMap<>();
         }
         setmap.put(var.getId(), val);
     }
@@ -324,7 +319,7 @@ public class Solution implements ICause {
     public void setRealBounds(RealVar var, double[] val) {
         empty = false;
         if (realmap == null) {
-            realmap = new TIntObjectHashMap<>(16, 05f, Solution.NO_ENTRY);
+            realmap = new Int2ObjectOpenHashMap<>();
         }
         if (val.length != 2) {
             throw new SolverException("wrong array size");
@@ -437,9 +432,9 @@ public class Solution implements ICause {
      *
      * @return array of {@link BoolVar} in <code>this</code> solution
      */
+    @SuppressWarnings("unused")
     public List<BoolVar> retrieveBoolVars() {
         List<BoolVar> bvars = new ArrayList<>();
-        int k = 0;
         for (int i = 0; i < varsToStore.length; i++) {
             if ((varsToStore[i].getTypeAndKind() & Variable.KIND) == Variable.BOOL) {
                 bvars.add((BoolVar) varsToStore[i]);
@@ -469,6 +464,7 @@ public class Solution implements ICause {
      *
      * @return array of {@link RealVar} in <code>this</code> solution
      */
+    @SuppressWarnings("unused")
     public List<RealVar> retrieveRealVars() {
         List<RealVar> rvars = new ArrayList<>();
         for (int i = 0; i < varsToStore.length; i++) {

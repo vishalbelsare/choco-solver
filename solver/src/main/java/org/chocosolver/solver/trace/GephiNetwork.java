@@ -9,24 +9,14 @@
  */
 package org.chocosolver.solver.trace;
 
-import static org.chocosolver.solver.trace.GephiConstants.BLUE;
-import static org.chocosolver.solver.trace.GephiConstants.DIAM;
-import static org.chocosolver.solver.trace.GephiConstants.DISC;
-import static org.chocosolver.solver.trace.GephiConstants.EDGETAG;
-import static org.chocosolver.solver.trace.GephiConstants.EEDGESTAG;
-import static org.chocosolver.solver.trace.GephiConstants.EGRAPGTAG;
-import static org.chocosolver.solver.trace.GephiConstants.ENODESTAG;
-import static org.chocosolver.solver.trace.GephiConstants.EXMLTAG;
-import static org.chocosolver.solver.trace.GephiConstants.NODETAG;
-import static org.chocosolver.solver.trace.GephiConstants.OEDGESTAG;
-import static org.chocosolver.solver.trace.GephiConstants.OGRAPGTAG;
-import static org.chocosolver.solver.trace.GephiConstants.ONODESTAG;
-import static org.chocosolver.solver.trace.GephiConstants.ORANGE;
-import static org.chocosolver.solver.trace.GephiConstants.OXMLTAG;
-import static org.chocosolver.solver.trace.GephiConstants.RED;
-import static org.chocosolver.solver.trace.GephiConstants.SQUARE;
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
+import it.unimi.dsi.fastutil.ints.IntSet;
+import org.chocosolver.solver.Model;
+import org.chocosolver.solver.constraints.Constraint;
+import org.chocosolver.solver.constraints.Propagator;
+import org.chocosolver.solver.variables.Variable;
+import org.chocosolver.solver.variables.view.IView;
 
-import gnu.trove.set.hash.TIntHashSet;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -34,11 +24,8 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
-import org.chocosolver.solver.Model;
-import org.chocosolver.solver.constraints.Constraint;
-import org.chocosolver.solver.constraints.Propagator;
-import org.chocosolver.solver.variables.Variable;
-import org.chocosolver.solver.variables.view.IView;
+
+import static org.chocosolver.solver.trace.GephiConstants.*;
 
 /**
  * <p> Project: choco-solver.
@@ -84,12 +71,13 @@ public class GephiNetwork{
         // 1.c, write constraints
         nodeCount++;
         int c = 0;
-        TIntHashSet set = new TIntHashSet();
+        IntSet set = new IntOpenHashSet();
         String id;
         for(Constraint cstr: model.getCstrs()){
             set.clear();
             id = "c_"+(++c);
             nodes.append(String.format(NODETAG, id, cstr.getName(), "", BLUE, SQUARE));
+            //noinspection rawtypes
             for(Propagator prop: cstr.getPropagators()) {
                 for(Variable var : prop.getVars()){
                     if(!set.contains(var.getId())){

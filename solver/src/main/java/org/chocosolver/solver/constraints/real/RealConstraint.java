@@ -9,8 +9,8 @@
  */
 package org.chocosolver.solver.constraints.real;
 
-import gnu.trove.map.hash.TIntIntHashMap;
-
+import it.unimi.dsi.fastutil.ints.Int2IntMap;
+import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.constraints.Constraint;
 import org.chocosolver.solver.variables.BoolVar;
@@ -104,7 +104,7 @@ public class RealConstraint extends Constraint {
         String[] theFunctions = functions.split(";");
         RealPropagator[] props = new RealPropagator[theFunctions.length];
         List<Variable> vars = new ArrayList<>();
-        TIntIntHashMap sidx = new TIntIntHashMap();
+        Int2IntMap sidx = new Int2IntOpenHashMap();
         for (int i = 0; i < props.length; i++) {
             String fct = theFunctions[i];
             // determine the sub-scope of variables
@@ -112,13 +112,13 @@ public class RealConstraint extends Constraint {
             while (m.find()) {
                 String g = m.group();
                 int id = Integer.parseInt(g.substring(1, g.length() - 1));
-                if (!sidx.contains(id)) {
+                if (!sidx.containsKey(id)) {
                     sidx.put(id, vars.size());
                     vars.add(rvars[id]);
                 }
             }
             // update the function
-            for (int k : sidx.keys()) {
+            for (int k : sidx.keySet()) {
                 fct = fct.replaceAll(
                         "\\{" + k + "\\}",
                         "{_" + sidx.get(k) + "}");

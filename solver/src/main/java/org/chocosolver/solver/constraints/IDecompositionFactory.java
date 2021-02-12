@@ -9,8 +9,9 @@
  */
 package org.chocosolver.solver.constraints;
 
-import gnu.trove.iterator.TIntIterator;
-import gnu.trove.set.hash.TIntHashSet;
+import it.unimi.dsi.fastutil.ints.IntIterator;
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
+import it.unimi.dsi.fastutil.ints.IntSet;
 import org.chocosolver.solver.ISelf;
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.constraints.extension.Tuples;
@@ -133,27 +134,28 @@ public interface IDecompositionFactory extends ISelf<Model> {
      * @param automaton a deterministic finite automaton defining the regular language
      * @return array of variables that encodes the states, which can optionally be constrained too.
      */
+    @SuppressWarnings("UnusedReturnValue")
     default IntVar[] regularDec(IntVar[] vars, IAutomaton automaton) {
         int n = vars.length;
         IntVar[] states = new IntVar[n + 1];
-        TIntHashSet[] layer = new TIntHashSet[n + 1];
+        IntSet[] layer = new IntOpenHashSet[n + 1];
         for (int i = 0; i <= n; i++) {
-            layer[i] = new TIntHashSet();
+            layer[i] = new IntOpenHashSet();
         }
         layer[0].add(automaton.getInitialState());
-        states[0] = ref().intVar("Q_"+ref().nextId(), layer[0].toArray());
-        TIntHashSet nexts = new TIntHashSet();
+        states[0] = ref().intVar("Q_"+ref().nextId(), layer[0].toArray(new int[0]));
+        IntSet nexts = new IntOpenHashSet();
         for (int i = 0; i < n; i++) {
             int ub = vars[i].getUB();
             Tuples tuples = new Tuples(true);
             for (int j = vars[i].getLB(); j <= ub; j = vars[i].nextValue(j)) {
-                TIntIterator layerIter = layer[i].iterator();
+                IntIterator layerIter = layer[i].iterator();
                 while (layerIter.hasNext()) {
-                    int k = layerIter.next();
+                    int k = layerIter.nextInt();
                     nexts.clear();
                     automaton.delta(k, j, nexts);
-                    for (TIntIterator it = nexts.iterator(); it.hasNext(); ) {
-                        int succ = it.next();
+                    for (IntIterator it = nexts.iterator(); it.hasNext(); ) {
+                        int succ = it.nextInt();
                         if (i + 1 < n || automaton.isFinal(succ)) {
                             layer[i + 1].add(succ);
                             tuples.add(k, succ, j);
@@ -161,7 +163,7 @@ public interface IDecompositionFactory extends ISelf<Model> {
                     }
                 }
             }
-            states[i + 1] = ref().intVar("Q_" + +ref().nextId(), layer[i + 1].toArray());
+            states[i + 1] = ref().intVar("Q_" + +ref().nextId(), layer[i + 1].toArray(new int[0]));
             ref().table(new IntVar[]{states[i], states[i + 1], vars[i]}, tuples, "CT+").post();
         }
         return states;

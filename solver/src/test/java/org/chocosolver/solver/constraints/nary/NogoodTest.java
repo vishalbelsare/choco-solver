@@ -9,11 +9,7 @@
  */
 package org.chocosolver.solver.constraints.nary;
 
-import static org.chocosolver.solver.search.strategy.Search.randomSearch;
-import static org.testng.Assert.assertEquals;
-
-import gnu.trove.list.TIntList;
-import gnu.trove.list.array.TIntArrayList;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 import org.chocosolver.sat.SatSolver;
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.Solver;
@@ -29,6 +25,9 @@ import org.chocosolver.solver.variables.IntVar;
 import org.chocosolver.solver.variables.SetVar;
 import org.testng.Assert;
 import org.testng.annotations.Test;
+
+import static org.chocosolver.solver.search.strategy.Search.randomSearch;
+import static org.testng.Assert.assertEquals;
 
 /**
  * <br/>
@@ -73,7 +72,7 @@ public class NogoodTest {
         ngstore.initialize();
 
 
-        TIntList ng = new TIntArrayList();
+        IntArrayList ng = new IntArrayList();
         ng.add(SatSolver.negated(ngstore.Literal(x, 1, true)));
         ng.add(SatSolver.negated(ngstore.Literal(y, 1, true)));
         ng.add(ngstore.Literal(z, 3, false));

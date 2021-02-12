@@ -9,8 +9,10 @@
  */
 package org.chocosolver.solver.constraints.nary;
 
-import gnu.trove.set.hash.TIntHashSet;
-
+import dk.brics.automaton.Automaton;
+import dk.brics.automaton.RegExp;
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
+import it.unimi.dsi.fastutil.ints.IntSet;
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.Solution;
 import org.chocosolver.solver.Solver;
@@ -28,9 +30,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-
-import dk.brics.automaton.Automaton;
-import dk.brics.automaton.RegExp;
 
 import static org.chocosolver.solver.search.strategy.Search.inputOrderLBSearch;
 import static org.testng.Assert.assertEquals;
@@ -390,7 +389,7 @@ public class RegularTest {
 
     private FiniteAutomaton makeAuto(boolean which){
         if(which){
-            TIntHashSet alphabet = new TIntHashSet();
+            IntSet alphabet = new IntOpenHashSet();
             alphabet.add(0);
             alphabet.add(1);
             alphabet.add(2);
@@ -400,18 +399,15 @@ public class RegularTest {
             Automaton a = r1.toAutomaton().intersection(r2.toAutomaton()).intersection(r3.toAutomaton());
             Constructor<FiniteAutomaton> constructor = null;
             try {
-                constructor = FiniteAutomaton.class.getDeclaredConstructor(Automaton.class, TIntHashSet.class);
+                constructor = FiniteAutomaton.class.getDeclaredConstructor(Automaton.class, IntSet.class);
             } catch (NoSuchMethodException e) {
                 e.printStackTrace();
             }
+            assert constructor != null;
             constructor.setAccessible(true);
             try {
                 return constructor.newInstance(a, alphabet);
-            } catch (InstantiationException e) {
-                e.printStackTrace();
-            } catch (IllegalAccessException e) {
-                e.printStackTrace();
-            } catch (InvocationTargetException e) {
+            } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
                 e.printStackTrace();
             }
         }else{

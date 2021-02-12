@@ -9,7 +9,8 @@
  */
 package org.chocosolver.solver.constraints.reification;
 
-import gnu.trove.map.hash.TIntObjectHashMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import org.chocosolver.solver.constraints.Constraint;
 import org.chocosolver.solver.constraints.ConstraintsName;
 import org.chocosolver.solver.constraints.Propagator;
@@ -36,10 +37,10 @@ public class LocalConstructiveDisjunction extends Constraint {
         super(ConstraintsName.LOCALCONSTRUCTIVEDISJUNCTION, createProps(constraints));
     }
 
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({"unchecked", "rawtypes"})
     private static Propagator[] createProps(Constraint... constraints) {
         Propagator<IntVar>[][] propagators = new Propagator[constraints.length][];
-        TIntObjectHashMap<IntVar> map1 = new TIntObjectHashMap<>();
+        Int2ObjectMap<IntVar> map1 = new Int2ObjectOpenHashMap<>();
         for (int i = 0; i < constraints.length; i++) {
             propagators[i] = constraints[i].getPropagators().clone();
             for (int j = 0; j < propagators[i].length; j++) {
@@ -50,7 +51,7 @@ public class LocalConstructiveDisjunction extends Constraint {
                 }
             }
         }
-        int[] keys = map1.keys();
+        int[] keys = map1.keySet().toIntArray();
         Arrays.sort(keys);
         IntVar[] allvars = new IntVar[keys.length];
         int k = 0;

@@ -9,10 +9,10 @@
  */
 package org.chocosolver.solver.search.strategy.strategy;
 
-import gnu.trove.list.TIntList;
-import gnu.trove.list.array.TIntArrayList;
-import gnu.trove.map.hash.TIntIntHashMap;
-
+import it.unimi.dsi.fastutil.ints.Int2IntMap;
+import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.ints.IntList;
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.exception.ContradictionException;
 import org.chocosolver.solver.search.loop.monitors.IMonitorContradiction;
@@ -45,7 +45,7 @@ public class ConflictOrderingSearch<V extends Variable> extends AbstractStrategy
     /**
      * The main strategy declared in the solver
      */
-    private AbstractStrategy<V> mainStrategy;
+    private final AbstractStrategy<V> mainStrategy;
     /**
      * Store the variables in conflict
      */
@@ -53,15 +53,15 @@ public class ConflictOrderingSearch<V extends Variable> extends AbstractStrategy
     /**
      * Get the position of a variable (thanks to its ID) in {@code #vars}
      */
-    private TIntIntHashMap var2pos;
+    private final Int2IntMap var2pos;
     /**
      * Get the position of the variable just before the variable 'i' wrt the stamp
      */
-    TIntList prev;
+    IntList prev;
     /**
      * Get the position of the variable just after the variable 'i' wrt the stamp
      */
-    TIntList next;
+    IntList next;
     /**
      * position, in {@code #vars}, of the last variable in conflict
      */
@@ -85,9 +85,10 @@ public class ConflictOrderingSearch<V extends Variable> extends AbstractStrategy
         this.mainStrategy = mainStrategy;
         // internal datastructures
         vars = new ArrayList<>();
-        var2pos = new TIntIntHashMap(16, .5f, -1, -1);
-        prev = new TIntArrayList();
-        next = new TIntArrayList();
+        var2pos = new Int2IntOpenHashMap();
+        var2pos.defaultReturnValue(-1);
+        prev = new IntArrayList();
+        next = new IntArrayList();
         pcft = -1;
         this.scope = new HashSet<>(Arrays.asList(mainStrategy.vars));
     }
@@ -117,6 +118,7 @@ public class ConflictOrderingSearch<V extends Variable> extends AbstractStrategy
     public Decision<V> getDecision() {
         V decVar = firstNotInst();
         if (decVar != null) {
+            //noinspection rawtypes
             Decision d = mainStrategy.computeDecision(decVar);
             if (d != null) {
                 return d;
@@ -160,8 +162,8 @@ public class ConflictOrderingSearch<V extends Variable> extends AbstractStrategy
                 next.add(-1);
             }
         } else if (pos != pcft) {
-            int p = prev.get(pos);
-            int n = next.get(pos);
+            int p = prev.getInt(pos);
+            int n = next.getInt(pos);
             if (p > -1) {
                 next.set(p, n);
             }
@@ -186,7 +188,7 @@ public class ConflictOrderingSearch<V extends Variable> extends AbstractStrategy
             if (!v.isInstantiated()) {
                 return vars.get(p);
             }
-            p = prev.get(p);
+            p = prev.getInt(p);
         }
         return null;
     }
@@ -195,10 +197,10 @@ public class ConflictOrderingSearch<V extends Variable> extends AbstractStrategy
         boolean ok = true;
         int first = -1;
         for(int i = 0; i < vars.size() && ok; i++){
-            int p = prev.get(i);
-            int n = next.get(i);
-            ok = (i == pcft && n == -1) || prev.get(n) == i;
-            ok &= p == -1 || next.get(p) == i;
+            int p = prev.getInt(i);
+            int n = next.getInt(i);
+            ok = (i == pcft && n == -1) || prev.getInt(n) == i;
+            ok &= p == -1 || next.getInt(p) == i;
             if(p == -1){
                 ok &= first == -1;
                 first = i;

@@ -9,8 +9,8 @@
  */
 package org.chocosolver.solver.constraints.reification;
 
-import gnu.trove.map.hash.TIntObjectHashMap;
-
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import org.chocosolver.memory.IStateInt;
 import org.chocosolver.solver.constraints.Propagator;
 import org.chocosolver.solver.constraints.PropagatorPriority;
@@ -19,7 +19,6 @@ import org.chocosolver.solver.variables.IntVar;
 import org.chocosolver.solver.variables.events.PropagatorEventType;
 import org.chocosolver.util.ESat;
 import org.chocosolver.util.objects.setDataStructures.iterable.IntIterableRangeSet;
-import org.chocosolver.util.objects.setDataStructures.iterable.IntIterableSetUtils;
 
 import java.util.BitSet;
 
@@ -53,7 +52,7 @@ public class PropLocalConDis extends Propagator<IntVar> {
     /**
      * Store the union of domain of modified variables
      */
-    TIntObjectHashMap<IntIterableRangeSet> domains;
+    Int2ObjectMap<IntIterableRangeSet> domains;
     /**
      * Cardinality of domains (external to limit GC)
      */
@@ -67,7 +66,7 @@ public class PropLocalConDis extends Propagator<IntVar> {
         super(vars, PropagatorPriority.VERY_SLOW, false);
         this.propagators = propagators;
         cardinalities = new int[vars.length];
-        domains = new TIntObjectHashMap<>();
+        domains = new Int2ObjectOpenHashMap<>();
         toUnion = new BitSet();
         idx = model.getEnvironment().makeInt(propagators.length-1);
     }
@@ -84,7 +83,7 @@ public class PropLocalConDis extends Propagator<IntVar> {
             }
             toUnion.clear();
             for (int i = idx.get(); i >= 0; i--) {
-                if (propagate(propagators[i], i)) {
+                if (propagate(propagators[i])) {
                     int last = idx.add(-1) + 1;
                     if (last > i) {
                         Propagator<IntVar>[] tmp = propagators[i];
@@ -133,7 +132,7 @@ public class PropLocalConDis extends Propagator<IntVar> {
      * @param props    propagator to execute
      * @return <tt>false</tt> if the propagation fails
      */
-    private boolean propagate(Propagator<IntVar>[] props, int cidx) {
+    private boolean propagate(Propagator<IntVar>[] props) {
         boolean fails = false;
         // make a backup world
         model.getEnvironment().worldPush();

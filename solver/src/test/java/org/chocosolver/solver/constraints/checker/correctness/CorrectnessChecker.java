@@ -9,16 +9,17 @@
  */
 package org.chocosolver.solver.constraints.checker.correctness;
 
-import gnu.trove.map.hash.THashMap;
-import java.util.Arrays;
+import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.constraints.checker.DomainBuilder;
 import org.chocosolver.solver.constraints.checker.Modeler;
 import org.chocosolver.solver.exception.ContradictionException;
 import org.chocosolver.solver.variables.IntVar;
-
-import java.util.Random;
 import org.testng.Assert;
+
+import java.util.Arrays;
+import java.util.Random;
 
 /**
  * <br/>
@@ -32,7 +33,7 @@ public class CorrectnessChecker {
     public static void checkCorrectness(Modeler modeler, int nbVar, int lowerB, int upperB, long seed, Object parameters) {
         Random r = new Random(seed);
         //        System.out.printf("Running %s\n", modeler.name());
-        THashMap<int[], IntVar> map = new THashMap<>();
+        Object2ObjectMap<int[], IntVar> map = new Object2ObjectOpenHashMap<>();
         double[] densities = {0.1, 0.25, 0.5, 0.75, 1.0};
         boolean[] homogeneous = {true, false};
         int loop = 0;
@@ -65,9 +66,9 @@ public class CorrectnessChecker {
                             try {
                                 if (test.getSolver().solve()) {
                                     System.out.println(format);
-                                    System.out.println(String.format("REF:\n%s\n", ref));
+                                    System.out.printf("REF:\n%s\n%n", ref);
                                     ref.getEnvironment().worldPop();
-                                    System.out.println(String.format("REF:\n%s\nTEST:\n%s", ref, test));
+                                    System.out.printf("REF:\n%s\nTEST:\n%s%n", ref, test);
                                     Assert.fail("one solution found");
                                 }
                             } catch (Exception e) {
@@ -84,7 +85,7 @@ public class CorrectnessChecker {
         //        System.out.printf("loop: %d\n", loop);
     }
 
-    private static Model referencePropagation(Modeler modeler, int nbVar, int[][] domains, THashMap<int[], IntVar> map, Object parameters) {
+    private static Model referencePropagation(Modeler modeler, int nbVar, int[][] domains, Object2ObjectMap<int[], IntVar> map, Object parameters) {
         Model ref = modeler.model(nbVar, domains, map, parameters);
         ref.getEnvironment().worldPush();
         try {

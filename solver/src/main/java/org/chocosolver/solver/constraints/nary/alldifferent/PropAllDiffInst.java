@@ -9,8 +9,7 @@
  */
 package org.chocosolver.solver.constraints.nary.alldifferent;
 
-import gnu.trove.stack.array.TIntArrayStack;
-
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 import org.chocosolver.solver.constraints.Propagator;
 import org.chocosolver.solver.constraints.PropagatorPriority;
 import org.chocosolver.solver.exception.ContradictionException;
@@ -29,14 +28,8 @@ import java.util.stream.IntStream;
  */
 public class PropAllDiffInst extends Propagator<IntVar> {
 
-    protected static class FastResetArrayStack extends TIntArrayStack{
-        void resetQuick(){
-            this._list.resetQuick();
-        }
-    }
-
     protected final int n;
-    protected FastResetArrayStack toCheck = new FastResetArrayStack();
+    protected IntArrayList toCheck = new IntArrayList();
 
     //***********************************************************************************
     // CONSTRUCTORS
@@ -69,8 +62,7 @@ public class PropAllDiffInst extends Propagator<IntVar> {
 
     @Override
     public void propagate(int evtmask) throws ContradictionException {
-//        toCheck.clear();
-        toCheck.resetQuick();
+        toCheck.clear();
         for (int v = 0; v < n; v++) {
             if (vars[v].isInstantiated()) {
                 toCheck.push(v);
@@ -81,15 +73,14 @@ public class PropAllDiffInst extends Propagator<IntVar> {
 
     @Override
     public void propagate(int varIdx, int mask) throws ContradictionException {
-//        toCheck.clear();
-        toCheck.resetQuick();
+        toCheck.clear();
         toCheck.push(varIdx);
         fixpoint();
     }
 
     protected void fixpoint() throws ContradictionException {
         while (toCheck.size() > 0) {
-            int vidx = toCheck.pop();
+            int vidx = toCheck.popInt();
             int val = vars[vidx].getValue();
             for (int i = 0; i < n; i++) {
                 if (i != vidx) {

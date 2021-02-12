@@ -9,7 +9,7 @@
  */
 package org.chocosolver.solver.variables.fast;
 
-import gnu.trove.list.array.TIntArrayList;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 import org.chocosolver.solver.Cause;
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.exception.ContradictionException;
@@ -34,7 +34,7 @@ public class BitsetArrayIntVarImplTest {
 
 	BitsetArrayIntVarImpl var;
 
-	public void setUp() throws Exception {
+	public void setUp() {
 		var = new BitsetArrayIntVarImpl("test", new int[]{-5, 0, 3, 4, 5}, new Model());
 	}
 
@@ -237,7 +237,7 @@ public class BitsetArrayIntVarImplTest {
 		rems.setOffset(0);
 		rems.addAll(2, 6, 9);
 		x.removeValues(rems, Cause.Null);
-		Assert.assertTrue(x.getDomainSize() == 2);
+		Assert.assertEquals(x.getDomainSize(), 2);
 	}
 
 	@Test(groups="1s", timeOut=60000)
@@ -670,10 +670,10 @@ public class BitsetArrayIntVarImplTest {
 		IntVar i = s.intVar("i", new int[]{0, 98, 99});
 		IIntDeltaMonitor d= i.monitorDelta(Cause.Null);
 		i.updateUpperBound(98, Cause.Null);
-		TIntArrayList remvals= new TIntArrayList(1);
+		IntArrayList remvals= new IntArrayList(1);
 		d.forEachRemVal((IntProcedure) remvals::add);
 		Assert.assertEquals(remvals.size(), 1);
-		Assert.assertEquals(remvals.get(0), 99);
+		Assert.assertEquals(remvals.getInt(0), 99);
 	}
 
 	@Test(groups="1s", timeOut=60000)
@@ -682,10 +682,10 @@ public class BitsetArrayIntVarImplTest {
 		IntVar i = s.intVar("i", new int[]{0, 98, 99});
 		IIntDeltaMonitor d= i.monitorDelta(Cause.Null);
 		i.updateBounds(0,98, Cause.Null);
-		TIntArrayList remvals= new TIntArrayList(1);
+		IntArrayList remvals= new IntArrayList(1);
 		d.forEachRemVal((IntProcedure) remvals::add);
 		Assert.assertEquals(remvals.size(), 1);
-		Assert.assertEquals(remvals.get(0), 99);
+		Assert.assertEquals(remvals.getInt(0), 99);
 	}
 
 	@Test(groups="1s", timeOut=60000)
@@ -694,10 +694,10 @@ public class BitsetArrayIntVarImplTest {
 		IntVar i = s.intVar("i", new int[]{2, 3, 99});
 		IIntDeltaMonitor d= i.monitorDelta(Cause.Null);
 		i.updateLowerBound(3, Cause.Null);
-		TIntArrayList remvals= new TIntArrayList(1);
+		IntArrayList remvals= new IntArrayList(1);
 		d.forEachRemVal((IntProcedure) remvals::add);
 		Assert.assertEquals(remvals.size(), 1);
-		Assert.assertEquals(remvals.get(0), 2);
+		Assert.assertEquals(remvals.getInt(0), 2);
 	}
 
 	@Test(groups="1s", timeOut=60000)
@@ -706,10 +706,10 @@ public class BitsetArrayIntVarImplTest {
 		IntVar i = s.intVar("i", new int[]{2, 3, 99});
 		IIntDeltaMonitor d= i.monitorDelta(Cause.Null);
 		i.updateBounds(3,99, Cause.Null);
-		TIntArrayList remvals= new TIntArrayList(1);
+		IntArrayList remvals= new IntArrayList(1);
 		d.forEachRemVal((IntProcedure) remvals::add);
 		Assert.assertEquals(remvals.size(), 1);
-		Assert.assertEquals(remvals.get(0), 2);
+		Assert.assertEquals(remvals.getInt(0), 2);
 	}
 
 	@Test(groups="1s", timeOut=60000)
@@ -734,7 +734,7 @@ public class BitsetArrayIntVarImplTest {
 	}
 
 	@Test(groups="1s", timeOut=60000)
-	public void testNextOut3() throws ContradictionException {
+	public void testNextOut3() {
 		Model model = new Model();
 		IntVar x = new BitsetArrayIntVarImpl("X", new int[]{-2,-1,1,2,5,6,7}, model);
 		Assert.assertEquals(x.nextValueOut(-4), -3);
@@ -767,7 +767,7 @@ public class BitsetArrayIntVarImplTest {
 	}
 
 	@Test(groups="1s", timeOut=60000)
-	public void testPreviousOut3() throws ContradictionException {
+	public void testPreviousOut3() {
 		Model model = new Model();
 		IntVar x = new BitsetArrayIntVarImpl("X", new int[]{-2,-1,1,2,5,6,7}, model);
 		Assert.assertEquals(x.previousValueOut(9), 8);

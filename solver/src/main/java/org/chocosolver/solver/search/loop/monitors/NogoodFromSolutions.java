@@ -9,10 +9,10 @@
  */
 package org.chocosolver.solver.search.loop.monitors;
 
-import gnu.trove.list.TIntList;
-import gnu.trove.list.array.TIntArrayList;
-import org.chocosolver.solver.constraints.nary.sat.PropNogoods;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.ints.IntList;
 import org.chocosolver.sat.SatSolver;
+import org.chocosolver.solver.constraints.nary.sat.PropNogoods;
 import org.chocosolver.solver.variables.IntVar;
 
 /**
@@ -30,7 +30,7 @@ public class NogoodFromSolutions implements IMonitorSolution {
 
     private final PropNogoods png;
     private final IntVar[] decisionVars;
-    private final TIntList ps;
+    private final IntList ps;
 
     /**
      * Avoid exploring same solutions (useful with restart on solution)
@@ -46,7 +46,7 @@ public class NogoodFromSolutions implements IMonitorSolution {
     public NogoodFromSolutions(IntVar[] vars) {
         decisionVars = vars;
         png = vars[0].getModel().getNogoodStore().getPropNogoods();
-        ps = new TIntArrayList();
+        ps = new IntArrayList();
     }
 
     @Override
@@ -56,7 +56,7 @@ public class NogoodFromSolutions implements IMonitorSolution {
         for (int i = 0; i < n; i++) {
             ps.add(SatSolver.negated(png.Literal(decisionVars[i], decisionVars[i].getValue(), true)));
         }
-        png.addLearnt(ps.toArray());
+        png.addLearnt(ps.toIntArray());
     }
 
 }

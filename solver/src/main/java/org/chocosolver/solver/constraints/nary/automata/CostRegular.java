@@ -9,13 +9,9 @@
  */
 package org.chocosolver.solver.constraints.nary.automata;
 
-import static org.chocosolver.util.tools.ArrayUtils.concat;
-
-import gnu.trove.iterator.TIntIterator;
-import gnu.trove.set.hash.TIntHashSet;
-import java.util.ArrayList;
-import java.util.BitSet;
-import java.util.HashSet;
+import it.unimi.dsi.fastutil.ints.IntIterator;
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
+import it.unimi.dsi.fastutil.ints.IntSet;
 import org.chocosolver.memory.IEnvironment;
 import org.chocosolver.solver.constraints.Constraint;
 import org.chocosolver.solver.constraints.ConstraintsName;
@@ -27,6 +23,12 @@ import org.chocosolver.solver.exception.SolverException;
 import org.chocosolver.solver.variables.IntVar;
 import org.chocosolver.util.tools.ArrayUtils;
 import org.jgrapht.graph.DirectedMultigraph;
+
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.HashSet;
+
+import static org.chocosolver.util.tools.ArrayUtils.concat;
 
 /**
  * COST_REGULAR constraint
@@ -45,6 +47,7 @@ public class CostRegular extends Constraint {
 		));
     }
 
+    @SuppressWarnings("DuplicatedCode")
     private static StoredValuedDirectedMultiGraph initGraph(IntVar[] vars, ICostAutomaton pi) {
 		IEnvironment environment = vars[0].getEnvironment();
         int aid = 0;
@@ -75,37 +78,38 @@ public class CostRegular extends Constraint {
 
 
         int i, j, k;
-        TIntIterator layerIter;
-        TIntIterator qijIter;
+        IntIterator layerIter;
+        IntIterator qijIter;
 
-        ArrayList<TIntHashSet> layer = new ArrayList<>();
-        TIntHashSet[] tmpQ = new TIntHashSet[totalSizes];
+        ArrayList<IntSet> layer = new ArrayList<>();
+        IntSet[] tmpQ = new IntSet[totalSizes];
         // DLList[vars.length+1];
 
         for (i = 0; i <= size; i++) {
-            layer.add(new TIntHashSet());// = new DLList(nbNodes);
+            layer.add(new IntOpenHashSet());// = new DLList(nbNodes);
         }
 
         //forward pass, construct all paths described by the automaton for word of length nbVars.
 
         layer.get(0).add(pi.getInitialState());
 
-        TIntHashSet succ = new TIntHashSet();
+        IntSet succ = new IntOpenHashSet();
         for (i = 0; i < size; i++) {
             int ub = vars[i].getUB();
             for (j = vars[i].getLB(); j <= ub; j = vars[i].nextValue(j)) {
                 layerIter = layer.get(i).iterator();
                 while (layerIter.hasNext()) {
-                    k = layerIter.next();
+                    k = layerIter.nextInt();
                     succ.clear();
                     pi.delta(k, j, succ);
                     if (!succ.isEmpty()) {
-                        TIntIterator it = succ.iterator();
-                        for (; it.hasNext(); )
-                            layer.get(i + 1).add(it.next());
+                        IntIterator it = succ.iterator();
+                        while (it.hasNext()) {
+                            layer.get(i + 1).add(it.nextInt());
+                        }
                         int idx = starts[i] + j - offsets[i];
                         if (tmpQ[idx] == null)
-                            tmpQ[idx] = new TIntHashSet();
+                            tmpQ[idx] = new IntOpenHashSet();
 
                         tmpQ[idx].add(k);
 
@@ -118,7 +122,7 @@ public class CostRegular extends Constraint {
         //removing reachable non accepting states
         layerIter = layer.get(size).iterator();
         while (layerIter.hasNext()) {
-            k = layerIter.next();
+            k = layerIter.nextInt();
             if (pi.isNotFinal(k)) {
                 layerIter.remove();
             }
@@ -138,17 +142,17 @@ public class CostRegular extends Constraint {
             int ub = vars[i].getUB();
             for (j = vars[i].getLB(); j <= ub; j = vars[i].nextValue(j)) {
                 int idx = starts[i] + j - offsets[i];
-                TIntHashSet l = tmpQ[idx];
+                IntSet l = tmpQ[idx];
                 if (l != null) {
                     qijIter = l.iterator();
                     while (qijIter.hasNext()) {
-                        k = qijIter.next();
+                        k = qijIter.nextInt();
                         succ.clear();
                         pi.delta(k, j, succ);
-                        TIntIterator it = succ.iterator();
+                        IntIterator it = succ.iterator();
                         boolean added = false;
-                        for (; it.hasNext(); ) {
-                            int qn = it.next();
+                        while (it.hasNext()) {
+                            int qn = it.nextInt();
                             if (layer.get(i + 1).contains(qn)) {
                                 added = true;
                                 Node a = in[i * pi.getNbStates() + k];
@@ -182,11 +186,11 @@ public class CostRegular extends Constraint {
 
             // If no more arcs go out of a given state in the layer, then we remove the state from that layer
             while (layerIter.hasNext())
-                if (!mark.get(layerIter.next()))
+                if (!mark.get(layerIter.nextInt()))
                     layerIter.remove();
         }
 
-        TIntHashSet th = new TIntHashSet();
+        IntSet th = new IntOpenHashSet();
         int[][] intLayer = new int[size + 2][];
         for (k = 0; k < pi.getNbStates(); k++) {
             Node o = in[size * pi.getNbStates() + k];
@@ -207,7 +211,7 @@ public class CostRegular extends Constraint {
                     th.add(o.id);
                 }
             }
-            intLayer[i] = th.toArray();
+            intLayer[i] = th.toIntArray();
         }
         intLayer[size + 1] = new int[]{tink.id};
 

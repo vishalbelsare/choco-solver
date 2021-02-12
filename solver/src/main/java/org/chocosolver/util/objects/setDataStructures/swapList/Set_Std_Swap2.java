@@ -9,7 +9,7 @@
  */
 package org.chocosolver.util.objects.setDataStructures.swapList;
 
-import gnu.trove.list.array.TIntArrayList;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 import org.chocosolver.memory.IEnvironment;
 import org.chocosolver.memory.IStateInt;
 import org.chocosolver.util.objects.setDataStructures.ISet;
@@ -29,8 +29,8 @@ public class Set_Std_Swap2 implements ISet {
 	//***********************************************************************************
 
     protected IStateInt size;
-    protected TIntArrayList values;
-    private ISetIterator iter = newIterator();
+    protected IntArrayList values;
+    private final ISetIterator iter = newIterator();
 
 
     //***********************************************************************************
@@ -43,7 +43,7 @@ public class Set_Std_Swap2 implements ISet {
 	 */
 	public Set_Std_Swap2(IEnvironment e){
 		size = e.makeInt(0);
-        values = new TIntArrayList(4);
+        values = new IntArrayList(4);
 	}
 
 	//***********************************************************************************
@@ -54,7 +54,7 @@ public class Set_Std_Swap2 implements ISet {
     public boolean add(int element) {
         if(!contains(element)){
             int pos = size.add(1);
-            values.insert(pos - 1, element);
+            values.add(pos - 1, element);
             return true;
         }
         return false;
@@ -67,7 +67,7 @@ public class Set_Std_Swap2 implements ISet {
         if(pos > -1 && pos < s){
             iter.notifyRemoving(element);
             s--;
-            int t = values.get(s);
+            int t = values.getInt(s);
             values.set(pos, t);
             values.set(s, element);
             size.add(-1);
@@ -94,25 +94,15 @@ public class Set_Std_Swap2 implements ISet {
     @Override
     public int min() {
         if(isEmpty()) throw new IllegalStateException("cannot find minimum of an empty set");
-        int min = values.get(0);
-        for(int i = 1; i< size(); i++){
-            if(min > values.get(i)){
-                min = values.get(i);
-            }
-        }
-        return min;
+        //noinspection OptionalGetWithoutIsPresent
+        return values.intStream().min().getAsInt();
     }
 
     @Override
     public int max() {
         if(isEmpty()) throw new IllegalStateException("cannot find maximum of an empty set");
-        int max = values.get(0);
-        for(int i = 1; i< size(); i++){
-            if(max < values.get(i)){
-                max = values.get(i);
-            }
-        }
-        return max;
+        //noinspection OptionalGetWithoutIsPresent
+        return values.intStream().max().getAsInt();
     }
 
     @Override
@@ -131,6 +121,7 @@ public class Set_Std_Swap2 implements ISet {
         return st.toString().replace(", }","}");
     }
 
+    @SuppressWarnings("NullableProblems")
     @Override
     public ISetIterator iterator(){
         iter.reset();
@@ -147,7 +138,7 @@ public class Set_Std_Swap2 implements ISet {
             }
             @Override
             public void notifyRemoving(int item) {
-                if(idx>0 && item == values.get(idx-1)){
+                if(idx>0 && item == values.getInt(idx-1)){
                     idx--;
                 }
             }
@@ -158,7 +149,7 @@ public class Set_Std_Swap2 implements ISet {
             @Override
             public int nextInt() {
                 idx ++;
-                return values.get(idx-1);
+                return values.getInt(idx-1);
             }
         };
     }

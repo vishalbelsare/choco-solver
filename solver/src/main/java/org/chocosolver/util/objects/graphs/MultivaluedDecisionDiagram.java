@@ -9,8 +9,9 @@
  */
 package org.chocosolver.util.objects.graphs;
 
-import gnu.trove.list.array.TIntArrayList;
-import gnu.trove.map.hash.TIntIntHashMap;
+import it.unimi.dsi.fastutil.ints.Int2IntMap;
+import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 import org.chocosolver.solver.constraints.extension.Tuples;
 import org.chocosolver.solver.variables.IntVar;
 
@@ -61,9 +62,9 @@ public class MultivaluedDecisionDiagram  {
     private final boolean sortTuples;
 
     // TEMPORARY DATA STRUCTURE, PREFIX WITH "_", CLEARED AFTER USAGE
-    private TIntIntHashMap _nodesToRemove; // store the nodes to remove and the size of each node
+    private Int2IntMap _nodesToRemove; // store the nodes to remove and the size of each node
     private ArrayList<int[]>[][] _identicalNodes; // store child nodes of a node
-    private TIntArrayList[][] _nodeId; // store node id per layer and nb of mdds
+    private IntArrayList[][] _nodeId; // store node id per layer and nb of mdds
     private int _removedCells; // define the number of cells erased by the compaction
     private int[] _pos;
 
@@ -172,9 +173,9 @@ public class MultivaluedDecisionDiagram  {
         nextFreeCell = sizes[0];
         _pos = new int[nbLayers];
 
-        _nodesToRemove = new TIntIntHashMap(16, .5f, -1, -1);
+        _nodesToRemove = new Int2IntOpenHashMap();
         _identicalNodes = new ArrayList[nbLayers][];
-        _nodeId = new TIntArrayList[nbLayers][];
+        _nodeId = new IntArrayList[nbLayers][];
 
         // Then add tuples
         if (TUPLES.nbTuples() > 0) {
@@ -244,16 +245,18 @@ public class MultivaluedDecisionDiagram  {
             }
             return d;
         });
-        _nodesToRemove = new TIntIntHashMap(16, .5f, -1, -1);
+        _nodesToRemove = new Int2IntOpenHashMap();
         _identicalNodes = new ArrayList[nbLayers][];
-        _nodeId = new TIntArrayList[nbLayers][];
+        _nodeId = new IntArrayList[nbLayers][];
 
         // Then add tuples
         // 0 is the root node
         // -1 is the target node
         int pf = 0;
-        TIntIntHashMap node = new TIntIntHashMap(16, 1.5f, -2, -2);
-        TIntIntHashMap posi = new TIntIntHashMap(16, 1.5f, -2, -2);
+        Int2IntMap node = new Int2IntOpenHashMap();
+        node.defaultReturnValue(-2);
+        Int2IntMap posi = new Int2IntOpenHashMap();
+        posi.defaultReturnValue(-2);
         for (int t = 0; t < TRANSITIONS.length; t++) {
             //addTransition(TRANSITIONS[t]);
             int f = TRANSITIONS[t][0];
@@ -330,13 +333,14 @@ public class MultivaluedDecisionDiagram  {
      */
     @SuppressWarnings("unchecked")
     private void compact() {
+        //noinspection OptionalGetWithoutIsPresent
         long card = Arrays.stream(sizes).mapToLong(i -> (long)i)
                 .reduce((a,b) -> a * b).getAsLong();
         if(card <= 2_000_000) {
             _nodesToRemove.clear();
             for (int i = 0; i < nbLayers; i++) {
                 _identicalNodes[i] = new ArrayList[sizes[i]];
-                _nodeId[i] = new TIntArrayList[sizes[i]];
+                _nodeId[i] = new IntArrayList[sizes[i]];
             }
             _removedCells = 0;
             detectIsomorphism(0, 0);
@@ -375,18 +379,18 @@ public class MultivaluedDecisionDiagram  {
         boolean known = false;
         if (_identicalNodes[layer][nbChild] == null) {
             _identicalNodes[layer][nbChild] = new ArrayList<>();
-            _nodeId[layer][nbChild] = new TIntArrayList();
+            _nodeId[layer][nbChild] = new IntArrayList();
         } else {
             for (int j = _identicalNodes[layer][nbChild].size() - 1; j >= 0; j--) {
                 int[] currentNode = _identicalNodes[layer][nbChild].get(j);
-                boolean found = _nodeId[layer][nbChild].get(j) != node;  // deal with previously analyzed nodes
+                boolean found = _nodeId[layer][nbChild].getInt(j) != node;  // deal with previously analyzed nodes
                 known |= !found;
                 if (found && Arrays.equals(currentNode, nodeChild)) {
                     int insert = _nodesToRemove.put(node, sizes[layer]);
                     if (insert == -1) {
                         _removedCells += sizes[layer];
                     }
-                    return _nodeId[layer][nbChild].get(j);
+                    return _nodeId[layer][nbChild].getInt(j);
                 }
             }
         }
@@ -414,7 +418,7 @@ public class MultivaluedDecisionDiagram  {
         } else {
             int to, from = 0;
             int gain = 0;
-            int[] keys = _nodesToRemove.keys();
+            int[] keys = _nodesToRemove.keySet().toIntArray();
             Arrays.sort(keys);
             // otherwise, iterate over nodes to remove
             for (int k : keys) {

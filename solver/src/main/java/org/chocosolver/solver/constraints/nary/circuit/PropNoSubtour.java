@@ -7,16 +7,10 @@
  *
  * See LICENSE file in the project root for full license information.
  */
-/**
- * Created by IntelliJ IDEA.
- * User: Jean-Guillaume Fages
- * Date: 03/10/11
- * Time: 19:56
- */
 
 package org.chocosolver.solver.constraints.nary.circuit;
 
-import gnu.trove.list.array.TIntArrayList;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 import org.chocosolver.memory.IEnvironment;
 import org.chocosolver.memory.IStateInt;
 import org.chocosolver.solver.constraints.Propagator;
@@ -40,9 +34,11 @@ public class PropNoSubtour extends Propagator<IntVar> {
     // VARIABLES
     //***********************************************************************************
 
-    private int n;
-    private int offset; // lower bound
-    private IStateInt[] origin, end, size;
+    private final int n;
+    private final int offset; // lower bound
+    private final IStateInt[] origin;
+    private final IStateInt[] end;
+    private final IStateInt[] size;
 
     //***********************************************************************************
     // CONSTRUCTORS
@@ -76,7 +72,7 @@ public class PropNoSubtour extends Propagator<IntVar> {
 
     @Override
     public void propagate(int evtmask) throws ContradictionException {
-        TIntArrayList fixedVar = new TIntArrayList();
+        IntArrayList fixedVar = new IntArrayList();
         for (int i = 0; i < n; i++) {
             vars[i].removeValue(i + offset, this);
             vars[i].updateBounds(offset, n - 1 + offset, this);
@@ -85,7 +81,7 @@ public class PropNoSubtour extends Propagator<IntVar> {
             }
         }
         for (int i = 0; i < fixedVar.size(); i++) {
-            varInstantiated(fixedVar.get(i), vars[fixedVar.get(i)].getValue() - offset);
+            varInstantiated(fixedVar.getInt(i), vars[fixedVar.getInt(i)].getValue() - offset);
         }
     }
 

@@ -9,9 +9,9 @@
  */
 package org.chocosolver.solver.constraints;
 
-import gnu.trove.list.array.TIntArrayList;
-import gnu.trove.set.TIntSet;
-import gnu.trove.set.hash.TIntHashSet;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
+import it.unimi.dsi.fastutil.ints.IntSet;
 import org.chocosolver.solver.ISelf;
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.constraints.binary.*;
@@ -147,13 +147,13 @@ public interface IIntConstraintFactory extends ISelf<Model> {
         if(mod == 0) {
             throw new SolverException("a should not be 0 for "+X.getName()+" MOD a = b");
         }
-        TIntArrayList list = new TIntArrayList();
+        IntArrayList list = new IntArrayList();
         for(int v = X.getLB(); v<=X.getUB(); v=X.nextValue(v)) {
             if(v % mod == res) {
                 list.add(v);
             }
         }
-        return member(X, list.toArray());
+        return member(X, list.elements());
     }
 
     /**
@@ -410,7 +410,7 @@ public interface IIntConstraintFactory extends ISelf<Model> {
      * @param tuples the relation between the two variables, among {"AC3", "AC3rm", "AC3bit+rm", "AC2001", "CT+", "FC"}
      */
     default Constraint table(IntVar var1, IntVar var2, Tuples tuples, String algo) {
-        Propagator p;
+        Propagator<IntVar> p;
         if (tuples.allowUniversalValue()) {
             p = new PropCompactTableStar(new IntVar[]{var1, var2}, tuples);
         } else {
@@ -718,11 +718,13 @@ public interface IIntConstraintFactory extends ISelf<Model> {
      */
     default Constraint allDifferentUnderCondition(IntVar[] vars, Condition condition, boolean singleCondition) {
         if (singleCondition) {
+            //noinspection ConstantConditions
             return new Constraint(ConstraintsName.ALLDIFFERENT,
                     new PropCondAllDiffInst(vars, condition, singleCondition),
                     new PropCondAllDiff_AC(vars, condition)
             );
         }
+        //noinspection ConstantConditions
         return new Constraint(ConstraintsName.ALLDIFFERENT, new PropCondAllDiffInst(vars, condition, singleCondition));
     }
 
@@ -771,7 +773,7 @@ public interface IIntConstraintFactory extends ISelf<Model> {
      * @param values set of values
      */
     default Constraint among(IntVar nbVar, IntVar[] vars, int[] values) {
-        int[] vls = new TIntHashSet(values).toArray(); // remove double occurrences
+        int[] vls = new IntOpenHashSet(values).toArray(new int[0]); // remove double occurrences
         Arrays.sort(vls);                              // sort
         return new Constraint(ConstraintsName.AMONG, new PropAmongGAC(ArrayUtils.concat(vars, nbVar), vls));
     }
@@ -1021,6 +1023,7 @@ public interface IIntConstraintFactory extends ISelf<Model> {
      * @return a circuit constraint
      */
     default Constraint circuit(IntVar[] vars, int offset, CircuitConf conf) {
+        //noinspection rawtypes
         Propagator[] props;
         if (conf == CircuitConf.LIGHT) {
             props = new Propagator[]{new PropNoSubtour(vars, offset)};
@@ -1311,8 +1314,8 @@ public interface IIntConstraintFactory extends ISelf<Model> {
         if (!closed) {
             return new GlobalCardinality(vars, values, occurrences);
         } else {
-            TIntArrayList toAdd = new TIntArrayList();
-            TIntSet givenValues = new TIntHashSet();
+            IntArrayList toAdd = new IntArrayList();
+            IntSet givenValues = new IntOpenHashSet();
             for (int i : values) {
                 assert !givenValues.contains(i);
                 givenValues.add(i);
@@ -1334,7 +1337,7 @@ public interface IIntConstraintFactory extends ISelf<Model> {
                 System.arraycopy(values, 0, v2, 0, values.length);
                 System.arraycopy(occurrences, 0, cards, 0, values.length);
                 for (int i = values.length; i < n2; i++) {
-                    v2[i] = toAdd.get(i - values.length);
+                    v2[i] = toAdd.getInt(i - values.length);
                     cards[i] = vars[0].getModel().intVar(0);
                 }
                 return new GlobalCardinality(vars, v2, cards);
@@ -1405,7 +1408,7 @@ public interface IIntConstraintFactory extends ISelf<Model> {
         if(ac){
             allEnum = true;
         }
-        Propagator ip = allEnum ? new PropInverseChannelAC(vars1, vars2, offset1, offset2)
+        Propagator<IntVar> ip = allEnum ? new PropInverseChannelAC(vars1, vars2, offset1, offset2)
                 : new PropInverseChannelBC(vars1, vars2, offset1, offset2);
         Constraint alldiff1 = allDifferent(vars1, ac?"AC":"");
         alldiff1.ignore();
@@ -1442,7 +1445,7 @@ public interface IIntConstraintFactory extends ISelf<Model> {
      */
     default Constraint intValuePrecedeChain(IntVar[] X, int[] V) {
         if (V.length > 1) {
-            TIntHashSet values = new TIntHashSet();
+            IntSet values = new IntOpenHashSet();
             PropIntValuePrecedeChain[] ps = new PropIntValuePrecedeChain[V.length - 1];
             values.add(V[0]);
             for (int i = 1; i < V.length; i++) {
@@ -2098,7 +2101,7 @@ public interface IIntConstraintFactory extends ISelf<Model> {
             if (tuples.nbTuples() > 512 &&
                     (IntStream.range(0, vars.length)
                             .map(i -> tuples.max(i) - tuples.min(i))
-                            .max().getAsInt()) < 256 || tuples.allowUniversalValue()) {
+                            .max().orElse(0)) < 256 || tuples.allowUniversalValue()) {
                 algo = "CT+";
             } else {
                 algo = "GACSTR+";
@@ -2151,7 +2154,7 @@ public interface IIntConstraintFactory extends ISelf<Model> {
         if (tuples.allowUniversalValue() && !algo.contains("CT+")) {
             throw new SolverException(algo + " table algorithm cannot be used with short tuples.");
         }
-        Propagator p;
+        Propagator<IntVar> p;
         switch (algo) {
             case "CT+": {
                 if (tuples.allowUniversalValue()) {

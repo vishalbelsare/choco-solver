@@ -9,7 +9,7 @@
  */
 package org.chocosolver.solver.variables.view;
 
-import gnu.trove.list.array.TIntArrayList;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 import org.chocosolver.solver.exception.ContradictionException;
 import org.chocosolver.solver.variables.delta.IIntDeltaMonitor;
 import org.chocosolver.util.procedure.IntProcedure;
@@ -32,13 +32,13 @@ public abstract class ViewDeltaMonitor implements IIntDeltaMonitor {
         }
     }
 
-    private IIntDeltaMonitor deltamonitor;
-    private TIntArrayList values;
-    private Filler filler;
+    private final IIntDeltaMonitor deltamonitor;
+    private final IntArrayList values;
+    private final Filler filler;
 
     public ViewDeltaMonitor(IIntDeltaMonitor deltamonitor) {
         this.deltamonitor = deltamonitor;
-        values = new TIntArrayList(8);
+        values = new IntArrayList(8);
         filler = new Filler();
     }
 
@@ -47,7 +47,7 @@ public abstract class ViewDeltaMonitor implements IIntDeltaMonitor {
         values.clear();
         deltamonitor.forEachRemVal(filler);
         for (int v = 0; v < values.size(); v++) {
-            proc.execute(transform(values.toArray()[v]));
+            proc.execute(transform(values.getInt(v)));
         }
     }
 
@@ -56,7 +56,7 @@ public abstract class ViewDeltaMonitor implements IIntDeltaMonitor {
         values.clear();
         deltamonitor.forEachRemVal(filler);
         for (int v = 0; v < values.size(); v++) {
-            proc.execute(transform(values.toArray()[v]));
+            proc.execute(transform(values.getInt(v)));
         }
     }
 

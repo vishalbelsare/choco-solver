@@ -9,8 +9,7 @@
  */
 package org.chocosolver.solver.constraints.nary.automata;
 
-import gnu.trove.stack.TIntStack;
-import gnu.trove.stack.array.TIntArrayStack;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 import org.chocosolver.memory.IEnvironment;
 import org.chocosolver.memory.IStateBool;
 import org.chocosolver.solver.constraints.Propagator;
@@ -43,7 +42,7 @@ public class PropCostRegular extends Propagator<IntVar> {
 
     private final StoredValuedDirectedMultiGraph graph;
     private final ICostAutomaton cautomaton;
-    private TIntStack toRemove;
+    private final IntArrayList toRemove;
 
     private final IStateBool boundChange;
     private int lastWorld = -1;
@@ -63,7 +62,7 @@ public class PropCostRegular extends Propagator<IntVar> {
         this.zIdx = vars.length - 1;
         this.rem_proc = new RemProc(this);
         IEnvironment environment = model.getEnvironment();
-        this.toRemove = new TIntArrayStack();
+        this.toRemove = new IntArrayList();
         this.boundChange = environment.makeBool(false);
         this.graph = graph;
         this.cautomaton = cautomaton;
@@ -171,17 +170,18 @@ public class PropCostRegular extends Propagator<IntVar> {
         it.dispose();
 
         try {
+            //noinspection DuplicatedCode
             do {
                 while (toRemove.size() > 0) {
-                    int id = toRemove.pop();
+                    int id = toRemove.popInt();
                     // toRemove.synchronize();
                     this.graph.removeArc(id, toRemove, this, this);
                 }
                 while (this.graph.toUpdateLeft.size() > 0) {
-                    this.graph.updateLeft(this.graph.toUpdateLeft.pop(), toRemove, this);
+                    this.graph.updateLeft(this.graph.toUpdateLeft.popInt(), toRemove, this);
                 }
                 while (this.graph.toUpdateRight.size() > 0) {
-                    this.graph.updateRight(this.graph.toUpdateRight.pop(), toRemove, this);
+                    this.graph.updateRight(this.graph.toUpdateRight.popInt(), toRemove, this);
                 }
             } while (toRemove.size() > 0);
         } catch (ContradictionException e) {
@@ -237,17 +237,18 @@ public class PropCostRegular extends Propagator<IntVar> {
 
         }
 
+        //noinspection DuplicatedCode
         do {
             while (toRemove.size() > 0) {
-                int id = toRemove.pop();
+                int id = toRemove.popInt();
                 // toRemove.synchronize();
                 this.graph.removeArc(id, toRemove, this, this);
             }
             while (this.graph.toUpdateLeft.size() > 0) {
-                this.graph.updateLeft(this.graph.toUpdateLeft.pop(), toRemove, this);
+                this.graph.updateLeft(this.graph.toUpdateLeft.popInt(), toRemove, this);
             }
             while (this.graph.toUpdateRight.size() > 0) {
-                this.graph.updateRight(this.graph.toUpdateRight.pop(), toRemove, this
+                this.graph.updateRight(this.graph.toUpdateRight.popInt(), toRemove, this
                 );
             }
         } while (toRemove.size() > 0);
@@ -270,13 +271,13 @@ public class PropCostRegular extends Propagator<IntVar> {
         }
 
         @Override
-        public UnaryIntProcedure set(Integer idxVar) {
+        public UnaryIntProcedure<Integer> set(Integer idxVar) {
             this.idxVar = idxVar;
             return this;
         }
 
         @Override
-        public void execute(int i) throws ContradictionException {
+        public void execute(int i) {
             StoredIndexedBipartiteSet sup = p.graph.getSupport(idxVar, i);
             if (sup != null) {
                 DisposableIntIterator it = sup.getIterator();

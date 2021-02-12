@@ -9,7 +9,7 @@
  */
 package org.chocosolver.util.graphOperations.dominance;
 
-import gnu.trove.list.array.TIntArrayList;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 import org.chocosolver.util.objects.graphs.DirectedGraph;
 import org.chocosolver.util.objects.setDataStructures.ISet;
 import org.chocosolver.util.objects.setDataStructures.ISetIterator;
@@ -35,7 +35,7 @@ public abstract class AbstractLengauerTarjanDominatorsFinder {
 	protected ISet[] succs;
 	protected ISet[] preds;
 	protected Iterator<Integer>[] iterator;
-	protected TIntArrayList list;
+	protected IntArrayList list;
 
 	//***********************************************************************************
 	// CONSTRUCTORS
@@ -60,7 +60,7 @@ public abstract class AbstractLengauerTarjanDominatorsFinder {
 		//noinspection unchecked
 		iterator = new Iterator[n];
 		T = new DirectedGraph(n, SetType.LINKED_LIST, false);
-		list = new TIntArrayList();
+		list = new IntArrayList();
 	}
 
 	//***********************************************************************************
@@ -214,7 +214,21 @@ public abstract class AbstractLengauerTarjanDominatorsFinder {
 
 	protected abstract int eval(int v);
 
-	protected abstract void compress(int v);
+	protected void compress(int v) {
+		int k = v;
+		list.clear();
+		while (ancestor[ancestor[k]] != -1) {
+			list.add(k);
+			k = ancestor[k];
+		}
+		for (k = list.size() - 1; k >= 0; k--) {
+			v = list.getInt(k);
+			if (semi[label[ancestor[v]]] < semi[label[v]]) {
+				label[v] = label[ancestor[v]];
+			}
+			ancestor[v] = ancestor[ancestor[v]];
+		}
+	}
 
 	//***********************************************************************************
 	// ACCESSORS
@@ -223,6 +237,7 @@ public abstract class AbstractLengauerTarjanDominatorsFinder {
 	/**
 	 * @return the immediate dominator of x in the flow graph
 	 */
+	@SuppressWarnings("unused")
 	public int getImmediateDominatorsOf(int x) {
 		return dom[x];
 	}

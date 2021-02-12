@@ -10,10 +10,9 @@
 package org.chocosolver.solver.constraints.nary.automata.FA;
 
 import dk.brics.automaton.*;
-import gnu.trove.iterator.TIntIterator;
-import gnu.trove.map.hash.TIntIntHashMap;
-import gnu.trove.map.hash.TObjectIntHashMap;
-import gnu.trove.set.hash.TIntHashSet;
+import it.unimi.dsi.fastutil.ints.*;
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import org.chocosolver.solver.exception.SolverException;
 import org.chocosolver.util.tools.StringUtils;
 
@@ -36,16 +35,16 @@ public class FiniteAutomaton implements IAutomaton {
    	//***********************************************************************************
 
     private Automaton representedBy;
-    private TObjectIntHashMap<State> stateToIndex;
+    private Object2IntMap<State> stateToIndex;
     private ArrayList<State> states;
-    private TIntHashSet alphabet;
+    private IntSet alphabet;
     private int nbStates;
-    private HashSet<State> nexts = new HashSet<>();
+    private final HashSet<State> nexts = new HashSet<>();
     private int min = Character.MIN_VALUE;
     private int max = Character.MAX_VALUE;
 
-    private final static TIntIntHashMap charFromIntMap = new TIntIntHashMap(16, .5f, -1, -1);
-    private final static TIntIntHashMap intFromCharMap = new TIntIntHashMap(16, .5f, -1, -1);
+    private final static Int2IntMap charFromIntMap = new Int2IntOpenHashMap();
+    private final static Int2IntMap intFromCharMap = new Int2IntOpenHashMap();
 
     static {
         int delta = 0;
@@ -65,10 +64,10 @@ public class FiniteAutomaton implements IAutomaton {
 
     public FiniteAutomaton() {
         this.representedBy = new Automaton();
-        this.stateToIndex = new TObjectIntHashMap<>();
+        this.stateToIndex = new Object2IntOpenHashMap<>();
         this.states = new ArrayList<>();
 
-        this.alphabet = new TIntHashSet();
+        this.alphabet = new IntOpenHashSet();
 
     }
 
@@ -107,7 +106,7 @@ public class FiniteAutomaton implements IAutomaton {
         perfectCopy(other);
     }
 
-    private FiniteAutomaton(Automaton a, TIntHashSet alphabet) {
+    private FiniteAutomaton(Automaton a, IntSet alphabet) {
         this();
         fill(a, alphabet);
     }
@@ -130,20 +129,20 @@ public class FiniteAutomaton implements IAutomaton {
         }
     }
 
-    public static int max(TIntHashSet hs) {
+    public static int max(IntSet hs) {
         int max = Integer.MIN_VALUE;
-        for (TIntIterator it = hs.iterator(); it.hasNext(); ) {
-            int n = it.next();
+        for (IntIterator it = hs.iterator(); it.hasNext(); ) {
+            int n = it.nextInt();
             if (n > max)
                 max = n;
         }
         return max;
     }
 
-    private static int min(TIntHashSet hs) {
+    private static int min(IntSet hs) {
         int min = Integer.MAX_VALUE;
-        for (TIntIterator it = hs.iterator(); it.hasNext(); ) {
-            int n = it.next();
+        for (IntIterator it = hs.iterator(); it.hasNext(); ) {
+            int n = it.nextInt();
             if (n < min)
                 min = n;
         }
@@ -154,7 +153,7 @@ public class FiniteAutomaton implements IAutomaton {
    	// API METHODS
    	//***********************************************************************************
 
-    public void fill(Automaton a, TIntHashSet alphabet) {
+    public void fill(Automaton a, IntSet alphabet) {
 
         int max = max(alphabet);
         int min = min(alphabet);
@@ -172,7 +171,7 @@ public class FiniteAutomaton implements IAutomaton {
         }
         for (State s : states) {
             State p = m.get(s);
-            int source = stateToIndex.get(p);
+            int source = stateToIndex.getInt(p);
             p.setAccept(s.isAccept());
             if (a.getInitialState().equals(s))
                 representedBy.setInitialState(p);
@@ -180,7 +179,7 @@ public class FiniteAutomaton implements IAutomaton {
                 int tmin = getIntFromChar(t.getMin());
                 int tmax = getIntFromChar(t.getMax());
                 State dest = m.get(t.getDest());
-                int desti = stateToIndex.get(dest);
+                int desti = stateToIndex.getInt(dest);
                 int minmax = Math.min(max, tmax);
                 for (int i = Math.max(min, tmin); i <= minmax; i++) {
                     if (alphabet.contains(i))
@@ -208,6 +207,7 @@ public class FiniteAutomaton implements IAutomaton {
         return idx;
     }
 
+    @SuppressWarnings("unused")
     public void removeSymbolFromAutomaton(int symbol) {
         char c = getCharFromInt(symbol);
         ArrayList<Triple> triples = new ArrayList<>();
@@ -216,7 +216,7 @@ public class FiniteAutomaton implements IAutomaton {
             for (Transition t : s.getTransitions()) {
 
                 if (t.getMin() <= c && t.getMax() >= c) {
-                    triples.add(new Triple(i, stateToIndex.get(t.getDest()), symbol));
+                    triples.add(new Triple(i, stateToIndex.getInt(t.getDest()), symbol));
                 }
             }
             for (Triple t : triples) {
@@ -255,7 +255,7 @@ public class FiniteAutomaton implements IAutomaton {
         Set<Transition> nTrans = new HashSet<>();
         char c = getCharFromInt(symbol);
         Iterator<Transition> it = transitions.iterator();
-        for (; it.hasNext(); ) {
+        while (it.hasNext()) {
             Transition t = it.next();
             if (t.getDest().equals(d) && t.getMin() <= c && t.getMax() >= c) {
                 it.remove();
@@ -285,13 +285,13 @@ public class FiniteAutomaton implements IAutomaton {
         State s = states.get(source);
         State d = s.step(getCharFromInt(symbol));
         if (d != null) {
-            return stateToIndex.get(d);
+            return stateToIndex.getInt(d);
         } else
             return -1;
 
     }
 
-    public void delta(int source, int symbol, TIntHashSet states) {
+    public void delta(int source, int symbol, IntSet states) {
         try {
             checkState(source);
         } catch (StateNotInAutomatonException e) {
@@ -301,10 +301,11 @@ public class FiniteAutomaton implements IAutomaton {
         nexts.clear();
         s.step(getCharFromInt(symbol), nexts);
         for (State to : nexts) {
-            states.add(stateToIndex.get(to));
+            states.add(stateToIndex.getInt(to));
         }
     }
 
+    @SuppressWarnings("unused")
     public void addToAlphabet(int a) {
         alphabet.add(a);
     }
@@ -318,7 +319,7 @@ public class FiniteAutomaton implements IAutomaton {
         if (s == null)
             return -1;
         else
-            return stateToIndex.get(s);
+            return stateToIndex.getInt(s);
     }
 
     public boolean isFinal(int state) {
@@ -370,6 +371,7 @@ public class FiniteAutomaton implements IAutomaton {
         states.get(state).setAccept(false);
     }
 
+    @SuppressWarnings("unused")
     public void setNonFInal(int... states) {
         for (int s : states) setNonFinal(s);
     }
@@ -383,6 +385,7 @@ public class FiniteAutomaton implements IAutomaton {
         return representedBy.run(b.toString());
     }
 
+    @SuppressWarnings("unused")
     public Automaton makeBricsAutomaton() {
         return representedBy.clone();
     }
@@ -416,8 +419,8 @@ public class FiniteAutomaton implements IAutomaton {
 
     public FiniteAutomaton union(FiniteAutomaton otherI) {
         Automaton union = this.representedBy.union(otherI.representedBy);
-        TIntHashSet alphabet = new TIntHashSet(this.alphabet.toArray());
-        alphabet.addAll(otherI.alphabet.toArray());
+        IntSet alphabet = new IntOpenHashSet(this.alphabet);
+        alphabet.addAll(otherI.alphabet);
         return new FiniteAutomaton(union, alphabet);
 
     }
@@ -425,15 +428,15 @@ public class FiniteAutomaton implements IAutomaton {
     public FiniteAutomaton intersection(IAutomaton otherI) {
         FiniteAutomaton other = (FiniteAutomaton) otherI;
         Automaton inter = this.representedBy.intersection(other.representedBy);
-        TIntHashSet alphabet = new TIntHashSet();
-        for (int a : this.alphabet.toArray()) {
+        IntSet alphabet = new IntOpenHashSet();
+        for (int a : this.alphabet.toIntArray()) {
             if (other.alphabet.contains(a))
                 alphabet.add(a);
         }
         return new FiniteAutomaton(inter, alphabet);
     }
 
-    public FiniteAutomaton complement(TIntHashSet alphabet) {
+    public FiniteAutomaton complement(IntSet alphabet) {
         Automaton comp = this.representedBy.complement();
         return new FiniteAutomaton(comp, alphabet);
     }
@@ -444,8 +447,8 @@ public class FiniteAutomaton implements IAutomaton {
 
     public FiniteAutomaton concatenate(FiniteAutomaton otherI) {
         Automaton conc = this.representedBy.concatenate(otherI.representedBy);
-        TIntHashSet alphabet = new TIntHashSet(this.alphabet.toArray());
-        alphabet.addAll(otherI.alphabet.toArray());
+        IntSet alphabet = new IntOpenHashSet(this.alphabet);
+        alphabet.addAll(otherI.alphabet);
         return new FiniteAutomaton(conc, alphabet);
     }
 
@@ -473,8 +476,8 @@ public class FiniteAutomaton implements IAutomaton {
         this.representedBy.setDeterministic(deterministic);
     }
 
-    public TIntHashSet getFinalStates() {
-        TIntHashSet finals = new TIntHashSet();
+    public IntSet getFinalStates() {
+        IntSet finals = new IntOpenHashSet();
         for (int i = 0; i < states.size(); i++) {
             if (states.get(i).isAccept())
                 finals.add(i);
@@ -499,7 +502,7 @@ public class FiniteAutomaton implements IAutomaton {
         Set<State> states = this.representedBy.getStates();
         // setStateNumbers(states);
         for (State s : states) {
-            int idx = stateToIndex.get(s);
+            int idx = stateToIndex.getInt(s);
             b.append("  ").append(idx);
             if (s.isAccept())
                 b.append(" [shape=doublecircle];\n");
@@ -517,23 +520,14 @@ public class FiniteAutomaton implements IAutomaton {
         return b.append("}\n").toString();
     }
 
-    public TIntHashSet getAlphabet() {
+    public IntSet getAlphabet() {
         return alphabet;
     }
 
     public List<int[]> getTransitions() {
         List<int[]> transitions = new ArrayList<>();
         for (int i = 0; i < states.size(); i++) {
-            State s = states.get(i);
-            for (Transition t : s.getTransitions()) {
-                int dest = stateToIndex.get(t.getDest());
-                char m = (char) Math.max(min, t.getMin());
-                char M = (char) Math.min(max, t.getMax());
-                for (char c = m; c <= M; c++) {
-                    int symbol = getIntFromChar(c);
-                    transitions.add(new int[]{i, dest, symbol});
-                }
-            }
+            transitions.addAll(getTransitions(i));
         }
         return transitions;
     }
@@ -541,7 +535,8 @@ public class FiniteAutomaton implements IAutomaton {
     public List<int[]> getTransitions(int state) {
         List<int[]> transitions = new ArrayList<>();
         for (Transition t : states.get(state).getTransitions()) {
-            int dest = stateToIndex.get(t.getDest());
+            //noinspection DuplicatedCode
+            int dest = stateToIndex.getInt(t.getDest());
             char m = (char) Math.max(min, t.getMin());
             char M = (char) Math.min(max, t.getMax());
             for (char c = m; c <= M; c++) {
@@ -552,16 +547,17 @@ public class FiniteAutomaton implements IAutomaton {
         return transitions;
     }
 
+    @SuppressWarnings("unused")
     public ArrayList<int[]> _removeSymbolFromAutomaton(int alpha) {
         char c = getCharFromInt(alpha);
-        TIntHashSet setOfRemoved = new TIntHashSet();
+        IntSet setOfRemoved = new IntOpenHashSet();
         ArrayList<Triple> triples = new ArrayList<>();
         for (int i = 0; i < states.size(); i++) {
             State s = states.get(i);
             for (Transition t : s.getTransitions()) {
 
                 if (t.getMin() <= c && t.getMax() >= c) {
-                    triples.add(new Triple(i, stateToIndex.get(t.getDest()), alpha));
+                    triples.add(new Triple(i, stateToIndex.getInt(t.getDest()), alpha));
                     setOfRemoved.add(i);
                 }
             }
@@ -577,7 +573,7 @@ public class FiniteAutomaton implements IAutomaton {
         for (int i = 0; i < states.size(); i++) {
             State s = states.get(i);
             for (Transition t : s.getTransitions()) {
-                int dest = stateToIndex.get(t.getDest());
+                int dest = stateToIndex.getInt(t.getDest());
                 if (setOfRemoved.contains(dest)) {
                     for (char d = t.getMin(); d <= t.getMax(); d++)
                         couple.add(new int[]{i, getIntFromChar(d)});
@@ -600,8 +596,8 @@ public class FiniteAutomaton implements IAutomaton {
         FiniteAutomaton auto = (FiniteAutomaton) super.clone();
         auto.representedBy = new Automaton();
         auto.states = new ArrayList<>();
-        auto.stateToIndex = new TObjectIntHashMap<>();
-        auto.alphabet = new TIntHashSet();
+        auto.stateToIndex = new Object2IntOpenHashMap<>();
+        auto.alphabet = new IntOpenHashSet();
         auto.nbStates = this.nbStates;
         for (int i = 0; i < this.nbStates; i++) {
             State s = new State();
@@ -631,9 +627,11 @@ public class FiniteAutomaton implements IAutomaton {
     private void perfectCopy(FiniteAutomaton other) {
         this.representedBy = new Automaton();
         this.states = new ArrayList<>();
-        this.stateToIndex = new TObjectIntHashMap<>();
-        this.alphabet = new TIntHashSet();
+        this.stateToIndex = new Object2IntOpenHashMap<>();
+        this.alphabet = new IntOpenHashSet();
         this.nbStates = other.nbStates;
+        this.min = Math.max(Character.MIN_VALUE, other.min);
+        this.max = Math.min(Character.MAX_VALUE, other.max);
         for (int i = 0; i < other.nbStates; i++) {
             State s = new State();
             this.states.add(s);
@@ -678,7 +676,7 @@ public class FiniteAutomaton implements IAutomaton {
     }
 
     private void appendDot(Transition t, StringBuilder b) {
-        int destIdx = stateToIndex.get(t.getDest());
+        int destIdx = stateToIndex.getInt(t.getDest());
 
         b.append(" -> ").append(destIdx).append(" [label=\"");
         b.append("{");

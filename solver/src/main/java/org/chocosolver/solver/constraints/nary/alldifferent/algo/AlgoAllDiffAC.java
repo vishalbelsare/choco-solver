@@ -9,7 +9,8 @@
  */
 package org.chocosolver.solver.constraints.nary.alldifferent.algo;
 
-import gnu.trove.map.hash.TIntIntHashMap;
+import it.unimi.dsi.fastutil.ints.Int2IntMap;
+import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
 import org.chocosolver.solver.ICause;
 import org.chocosolver.solver.exception.ContradictionException;
 import org.chocosolver.solver.variables.IntVar;
@@ -45,9 +46,9 @@ public class AlgoAllDiffAC {
     BitSet free;
     StrongConnectivityFinder SCCfinder;
     // for augmenting matching (BFS)
-    private int[] father;
-    private BitSet in;
-    TIntIntHashMap map;
+    private final int[] father;
+    private final BitSet in;
+    Int2IntMap map;
     int[] fifo;
     protected IntVar[] vars;
     ICause aCause;
@@ -64,7 +65,7 @@ public class AlgoAllDiffAC {
         for (int i = 0; i < n; i++) {
             matching[i] = -1;
         }
-        map = new TIntIntHashMap();
+        map = new Int2IntOpenHashMap();
         IntVar v;
         int ub;
         int idx = n;

@@ -9,7 +9,7 @@
  */
 package org.chocosolver.solver.search.strategy.selectors.variables;
 
-import gnu.trove.list.array.TIntArrayList;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 import org.chocosolver.memory.IStateInt;
 import org.chocosolver.solver.constraints.Propagator;
 import org.chocosolver.solver.search.strategy.assignments.DecisionOperatorFactory;
@@ -31,19 +31,19 @@ public abstract class AbstractCriterionBasedStrategy extends AbstractStrategy<In
     /**
      * Randomness to break ties
      */
-    private java.util.Random random;
+    private final java.util.Random random;
     /***
      * Pointer to the last uninstantiated variable
      */
-    private IStateInt last;
+    private final IStateInt last;
     /**
      * The way value is selected for a given variable
      */
-    private IntValueSelector valueSelector;
+    private final IntValueSelector valueSelector;
     /**
      * Temporary. Stores index of variables with the same (best) score
      */
-    private TIntArrayList bests = new TIntArrayList();
+    private final IntArrayList bests = new IntArrayList();
 
     /**
      * Kind of duplicate of pid2ari to limit calls of backtrackable objects
@@ -62,7 +62,7 @@ public abstract class AbstractCriterionBasedStrategy extends AbstractStrategy<In
     @Override
     public Decision<IntVar> getDecision() {
         IntVar best = null;
-        bests.resetQuick();
+        bests.clear();
         pid2arity.clear();
         double w = 0.;
         int to = last.get();
@@ -71,7 +71,7 @@ public abstract class AbstractCriterionBasedStrategy extends AbstractStrategy<In
             if (dsize > 1) {
                 double weight = weight(vars[idx]);
                 if (w < weight) {
-                    bests.resetQuick();
+                    bests.clear();
                     bests.add(idx);
                     w = weight;
                 } else if (w == weight) {
@@ -88,7 +88,7 @@ public abstract class AbstractCriterionBasedStrategy extends AbstractStrategy<In
         }
         last.set(to);
         if (bests.size() > 0) {
-            int currentVar = bests.get(random.nextInt(bests.size()));
+            int currentVar = bests.getInt(random.nextInt(bests.size()));
             best = vars[currentVar];
         }
         return computeDecision(best);
@@ -107,6 +107,7 @@ public abstract class AbstractCriterionBasedStrategy extends AbstractStrategy<In
 
     protected abstract double weight(IntVar v);
 
+    @SuppressWarnings("rawtypes")
     protected final int futVars(Propagator prop) {
         int pid = prop.getId();
         int futVars = pid2arity.get(pid);
@@ -116,6 +117,7 @@ public abstract class AbstractCriterionBasedStrategy extends AbstractStrategy<In
         return futVars;
     }
 
+    @SuppressWarnings("rawtypes")
     private int computeFutvars(Propagator prop, int pid) {
         int futVars = 0;
         for (int i = 0; i < prop.getNbVars(); i++) {

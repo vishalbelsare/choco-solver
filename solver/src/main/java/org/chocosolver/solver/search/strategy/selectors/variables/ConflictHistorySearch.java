@@ -9,10 +9,10 @@
  */
 package org.chocosolver.solver.search.strategy.selectors.variables;
 
-import gnu.trove.map.TObjectDoubleMap;
-import gnu.trove.map.TObjectIntMap;
-import gnu.trove.map.hash.TObjectDoubleHashMap;
-import gnu.trove.map.hash.TObjectIntHashMap;
+import it.unimi.dsi.fastutil.objects.Object2DoubleMap;
+import it.unimi.dsi.fastutil.objects.Object2DoubleOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import org.chocosolver.solver.Solver;
 import org.chocosolver.solver.constraints.Propagator;
 import org.chocosolver.solver.exception.ContradictionException;
@@ -43,7 +43,7 @@ public class ConflictHistorySearch
     /**
      * Score of each propagator.
      */
-    private final TObjectDoubleMap<Propagator> q = new TObjectDoubleHashMap<>(10, 0.5f, 0.0);
+    private final Object2DoubleMap<Propagator> q = new Object2DoubleOpenHashMap<>();
     /**
      * Step-size, 0 < a < 1.
      */
@@ -55,7 +55,7 @@ public class ConflictHistorySearch
     /**
      * Last {@link #conflicts} value where a propagator led to a failure.
      */
-    private final TObjectIntMap<Propagator> conflict = new TObjectIntHashMap<>(10, 0.5f, 0);
+    private final Object2IntMap<Propagator> conflict = new Object2IntOpenHashMap<>();
 
 
     public ConflictHistorySearch(IntVar[] vars, long seed, IntValueSelector valueSelector) {
@@ -85,9 +85,9 @@ public class ConflictHistorySearch
     public void onContradiction(ContradictionException cex) {
         if (cex.c instanceof Propagator) {
             Propagator p = (Propagator) cex.c;
-            double qj = q.get(p);
+            double qj = q.getOrDefault(p, 0.);
             // compute the reward
-            double r = 1d / (conflicts - conflict.get(p) + 1);
+            double r = 1d / (conflicts - conflict.getInt(p) + 1);
             // update q
             q.put(p, (1 - a) * qj + a * r);
             // decrease a
@@ -105,7 +105,7 @@ public class ConflictHistorySearch
         for (int i = 0; i < nbp; i++) {
             Propagator prop = v.getPropagator(i);
             if (futVars(prop) > 1) {
-                w += q.get(prop) + D;
+                w += q.getOrDefault(prop, 0) + D;
             }
         }
         return w / v.getDomainSize();
@@ -114,8 +114,8 @@ public class ConflictHistorySearch
     @Override
     public void afterRestart() {
         for (Propagator p : q.keySet()) {
-            double qj = q.get(p);
-            q.put(p, qj * Math.pow(DECAY, (conflicts - conflict.get(p))));
+            double qj = q.getOrDefault(p, 0.);
+            q.put(p, qj * Math.pow(DECAY, (conflicts - conflict.getInt(p))));
         }
         a = .4d;
     }

@@ -9,23 +9,13 @@
  */
 package org.chocosolver.solver.constraints.nary.sat;
 
-import static org.chocosolver.sat.SatSolver.makeLiteral;
-import static org.chocosolver.sat.SatSolver.negated;
-import static org.chocosolver.sat.SatSolver.sign;
-import static org.chocosolver.sat.SatSolver.var;
-
-import gnu.trove.list.TIntList;
-import gnu.trove.list.array.TIntArrayList;
-import gnu.trove.map.hash.TIntObjectHashMap;
-import gnu.trove.map.hash.TLongIntHashMap;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.BitSet;
-import java.util.Deque;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.ints.IntList;
+import it.unimi.dsi.fastutil.longs.Long2IntMap;
+import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
 import org.chocosolver.memory.IStateInt;
 import org.chocosolver.sat.SatSolver;
-import org.chocosolver.sat.SatSolver.Clause;
+import org.chocosolver.sat.SatSolver.*;
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.constraints.Propagator;
 import org.chocosolver.solver.constraints.PropagatorPriority;
@@ -35,6 +25,10 @@ import org.chocosolver.solver.variables.SetVar;
 import org.chocosolver.solver.variables.Variable;
 import org.chocosolver.util.ESat;
 import org.chocosolver.util.tools.VariableUtils;
+
+import java.util.*;
+
+import static org.chocosolver.sat.SatSolver.*;
 
 
 /**
@@ -64,12 +58,12 @@ public class PropNogoods extends Propagator<Variable> {
     /**
      * The underlying SAT solver
      */
-    private SatSolver sat_;
+    private final SatSolver sat_;
 
     /**
      * Binds couple (variable-value) to a unique literal
      */
-    private TLongIntHashMap[] vv2lit;
+    private Long2IntMap[] vv2lit;
 
     /**
      * Binds variable ({@link Variable#getId()} to a unique position
@@ -90,34 +84,29 @@ public class PropNogoods extends Propagator<Variable> {
     /**
      * For comparison with SAT solver trail, to deal properly with backtrack
      */
-    private IStateInt sat_trail_;
+    private final IStateInt sat_trail_;
 
     /**
      * List of early deduction literals
      */
-    private TIntList early_deductions_;
+    private final IntList early_deductions_;
 
     /**
      * Local-like parameter.
      * To reduce learnt no-goods.
      */
-    private BitSet test_eq;
+    private final BitSet test_eq;
 
     /**
      * Since there is no domain-clause, a fix point may not be reached by SatSolver itself.
      * Stores all modified variable to make sure a fix point is reached.
      */
-    private Deque<Variable> fp;
-
-    /**
-     * Local-like parameter, for #why() method only, lazily initialized.
-     */
-    private TIntObjectHashMap<ArrayList<Clause>> inClauses;
+    private final Deque<Variable> fp;
 
     /**
      * Store new added variables when {@link #initialized} is <i>false</i>
      */
-    private ArrayList<Variable> add_var;
+    private final ArrayList<Variable> add_var;
 
     /**
      * Indicates if this is initialized or not
@@ -134,7 +123,7 @@ public class PropNogoods extends Propagator<Variable> {
         this.vars = new Variable[0];// erase model.ONE from the variable scope
 
         int k = 16;
-        this.vv2lit = new TLongIntHashMap[k];//new TIntObjectHashMap<>(16, .5f, NO_ENTRY);
+        this.vv2lit = new Long2IntOpenHashMap[k];//new TIntObjectHashMap<>(16, .5f, NO_ENTRY);
         this.lit2val = new long[k];//new TIntIntHashMap(16, .5f, NO_ENTRY, NO_ENTRY);
         Arrays.fill(lit2val, NO_ENTRY);
         this.lit2pos = new int[k];//new TIntIntHashMap(16, .5f, NO_ENTRY, NO_ENTRY);
@@ -143,7 +132,7 @@ public class PropNogoods extends Propagator<Variable> {
         Arrays.fill(var2pos, NO_ENTRY);
         //TODO: one satsolver per model...
         sat_ = new SatSolver();
-        early_deductions_ = new TIntArrayList();
+        early_deductions_ = new IntArrayList();
         sat_trail_ = model.getEnvironment().makeInt();
         test_eq = new BitSet();
         fp = new ArrayDeque<>();
@@ -186,8 +175,8 @@ public class PropNogoods extends Propagator<Variable> {
     }
 
     private void doVariableBound(IntVar var) throws ContradictionException {
-        TLongIntHashMap map;
-        for (long k : (map = vv2lit[var.getId()]).keys()) {
+        Long2IntMap map;
+        for (long k : (map = vv2lit[var.getId()]).keySet()) {
             int value = ivalue(k);
             if (iseq(k)) {
                 if (var.contains(value)) {
@@ -208,8 +197,8 @@ public class PropNogoods extends Propagator<Variable> {
     }
 
     private void doVariableBound(SetVar var) throws ContradictionException {
-        TLongIntHashMap map;
-        for (long k : (map = vv2lit[var.getId()]).keys()) {
+        Long2IntMap map;
+        for (long k : (map = vv2lit[var.getId()]).keySet()) {
             int value = ivalue(k);
             if (iseq(k)) {
                 if (var.getLB().contains(value)) {
@@ -231,7 +220,7 @@ public class PropNogoods extends Propagator<Variable> {
             int var, val;
             long value;
             boolean sign, eq;
-            for (int k : sat_.implies_.keys()) {
+            for (int k : sat_.implies_.keySet()) {
                 sign = sign(negated(k));
                 var = var(k);
                 Variable avar = vars[lit2pos[var]];
@@ -260,12 +249,12 @@ public class PropNogoods extends Propagator<Variable> {
         return ESat.UNDEFINED;
     }
 
-    private boolean impliesEntailed(TIntList lits) {
+    private boolean impliesEntailed(IntArrayList lits) {
         int var;
         long value;
         boolean sign;
         Variable avar;
-        for (int l : lits.toArray()) {
+        for (int l : lits.toIntArray()) {
             sign = sign(l);
             var = var(l);
             avar = vars[lit2pos[var]];
@@ -379,7 +368,7 @@ public class PropNogoods extends Propagator<Variable> {
     public void initialize() {
         if (!initialized) {
             if (add_var.size() > 0) {
-                addVariable(add_var.toArray(new IntVar[0]));
+                addVariable(add_var.toArray(new Variable[0]));
             }
             add_var.clear();
             this.initialized = true;
@@ -400,14 +389,15 @@ public class PropNogoods extends Propagator<Variable> {
      * @param eq    set to <tt>true</tt> to select "=", to <tt>false</tt> to select "<=".
      * @return the literal corresponding to <code>ivar</code> (<code>eq</code>?"=":"<=") <code>value</code>
      */
+    @SuppressWarnings("DuplicatedCode")
     public int Literal(IntVar ivar, int value, boolean eq) {
         // TODO: deal with BoolVar
         int vid = ivar.getId();
         int var;
-        TLongIntHashMap map;
+        Long2IntMap map;
         if (vid >= vv2lit.length) {
-            TLongIntHashMap[] tmp = vv2lit;
-            vv2lit = new TLongIntHashMap[vid + 1];
+            Long2IntMap[] tmp = vv2lit;
+            vv2lit = new Long2IntMap[vid + 1];
             System.arraycopy(tmp, 0, vv2lit, 0, tmp.length);
 
             int[] tmpi = var2pos;
@@ -416,7 +406,7 @@ public class PropNogoods extends Propagator<Variable> {
             Arrays.fill(var2pos, tmpi.length, vid + 1, NO_ENTRY);
         }
         if ((map = vv2lit[vid]) == null) {
-            map = new TLongIntHashMap(16, .5f, NO_ENTRY, NO_ENTRY);
+            map = new Long2IntOpenHashMap();
             vv2lit[vid] = map;
         }
 
@@ -468,14 +458,15 @@ public class PropNogoods extends Propagator<Variable> {
      * @param in    set to <tt>true</tt> to select "&isin;", to <tt>false</tt> to select "&notin;".
      * @return the literal corresponding to <code>value</code> (<code>in</code>?"&isin;":"&notin;") <code>svar</code>
      */
+    @SuppressWarnings("DuplicatedCode")
     public int Literal(SetVar svar, int value, boolean in) {
         // TODO: deal with BoolVar
         int vid = svar.getId();
         int var;
-        TLongIntHashMap map;
+        Long2IntMap map;
         if (vid >= vv2lit.length) {
-            TLongIntHashMap[] tmp = vv2lit;
-            vv2lit = new TLongIntHashMap[vid + 1];
+            Long2IntMap[] tmp = vv2lit;
+            vv2lit = new Long2IntMap[vid + 1];
             System.arraycopy(tmp, 0, vv2lit, 0, tmp.length);
 
             int[] tmpi = var2pos;
@@ -484,7 +475,7 @@ public class PropNogoods extends Propagator<Variable> {
             Arrays.fill(var2pos, tmpi.length, vid + 1, NO_ENTRY);
         }
         if ((map = vv2lit[vid]) == null) {
-            map = new TLongIntHashMap(16, .5f, NO_ENTRY, NO_ENTRY);
+            map = new Long2IntOpenHashMap();
             vv2lit[vid] = map;
         }
 
@@ -543,12 +534,12 @@ public class PropNogoods extends Propagator<Variable> {
             } else {
                 sat_trail_.set(sat_.trailMarker());
                 for (int i = 0; i < sat_.touched_variables_.size(); ++i) {
-                    lit = sat_.touched_variables_.get(i);
+                    lit = sat_.touched_variables_.getInt(i);
                     doReduce(lit);
                 }
             }
         } finally {
-            sat_.touched_variables_.resetQuick(); // issue#327
+            sat_.touched_variables_.clear(); // issue#327
         }
     }
 
@@ -629,6 +620,7 @@ public class PropNogoods extends Propagator<Variable> {
      * @param var an integer variable
      * @return if clauses have been successfully added to the store.
      */
+    @SuppressWarnings("UnusedReturnValue")
     boolean declareDomainNogood(IntVar var) {
         int size = var.getDomainSize();
         int[] lits = new int[size * 2];
@@ -642,7 +634,7 @@ public class PropNogoods extends Propagator<Variable> {
             i++;
             a = var.nextValue(a);
         }
-        TIntList clauses = new TIntArrayList();
+        IntArrayList clauses = new IntArrayList();
         boolean add = false;
         // 2. add clauses
         // 2a.  [ x <= d ] => [ x <= d +1 ]
@@ -695,7 +687,7 @@ public class PropNogoods extends Propagator<Variable> {
      * @return <tt>false</tt> if failure is detected
      */
     @SuppressWarnings("unused")
-    public boolean addNogood(TIntList lits) {
+    public boolean addNogood(IntArrayList lits) {
         boolean result = sat_.addClause(lits);
         storeEarlyDeductions();
         return result;
@@ -736,10 +728,10 @@ public class PropNogoods extends Propagator<Variable> {
 
     private void storeEarlyDeductions() {
         for (int i = 0; i < sat_.touched_variables_.size(); ++i) {
-            int lit = sat_.touched_variables_.get(i);
+            int lit = sat_.touched_variables_.getInt(i);
             early_deductions_.add(lit);
         }
-        sat_.touched_variables_.resetQuick();
+        sat_.touched_variables_.clear();
     }
 
     /**
@@ -749,7 +741,7 @@ public class PropNogoods extends Propagator<Variable> {
      */
     private void applyEarlyDeductions() throws ContradictionException {
         for (int i = 0; i < early_deductions_.size(); ++i) {
-            int lit = early_deductions_.get(i);
+            int lit = early_deductions_.getInt(i);
             doReduce(lit);
         }
     }

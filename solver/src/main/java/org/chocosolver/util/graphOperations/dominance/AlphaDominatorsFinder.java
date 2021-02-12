@@ -21,7 +21,8 @@ public class AlphaDominatorsFinder extends AbstractLengauerTarjanDominatorsFinde
     // VARIABLES
     //***********************************************************************************
 
-    private int[] size, child;
+    private final int[] size;
+    private final int[] child;
 
     //***********************************************************************************
     // CONSTRUCTORS
@@ -91,21 +92,5 @@ public class AlphaDominatorsFinder extends AbstractLengauerTarjanDominatorsFinde
             }
         }
 
-    }
-
-    protected void compress(int v) {
-        int k = v;
-        list.clear();
-        while (ancestor[ancestor[k]] != -1) {
-            list.add(k);
-            k = ancestor[k];
-        }
-        for (k = list.size() - 1; k >= 0; k--) {
-            v = list.get(k);
-            if (semi[label[ancestor[v]]] < semi[label[v]]) {
-                label[v] = label[ancestor[v]];
-            }
-            ancestor[v] = ancestor[ancestor[v]];
-        }
     }
 }

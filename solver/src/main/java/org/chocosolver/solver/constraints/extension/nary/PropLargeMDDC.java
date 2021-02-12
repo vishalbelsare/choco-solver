@@ -9,8 +9,8 @@
  */
 package org.chocosolver.solver.constraints.extension.nary;
 
-import gnu.trove.set.TIntSet;
-import gnu.trove.set.hash.TIntHashSet;
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
+import it.unimi.dsi.fastutil.ints.IntSet;
 import org.chocosolver.solver.constraints.Propagator;
 import org.chocosolver.solver.constraints.PropagatorPriority;
 import org.chocosolver.solver.exception.ContradictionException;
@@ -27,8 +27,8 @@ import org.chocosolver.util.objects.graphs.MultivaluedDecisionDiagram;
  */
 public class PropLargeMDDC extends Propagator<IntVar> {
 
-    private final TIntSet yes;
-    private final TIntSet[] sets;
+    private final IntSet yes;
+    private final IntSet[] sets;
     private final StoredSparseSet no;
     private final MultivaluedDecisionDiagram MDD;
     private final int nvars;
@@ -44,11 +44,11 @@ public class PropLargeMDDC extends Propagator<IntVar> {
         super(VARS, PropagatorPriority.QUADRATIC, false);
         this.MDD = MDD;
         this.nvars = vars.length;
-        this.yes = new TIntHashSet();
+        this.yes = new IntOpenHashSet();
         this.no = new StoredSparseSet(VARS[0].getEnvironment());
-        this.sets = new TIntHashSet[nvars];
+        this.sets = new IntOpenHashSet[nvars];
         for (int i = 0; i < nvars; i++) {
-            this.sets[i] = new TIntHashSet(vars[i].getDomainSize());
+            this.sets[i] = new IntOpenHashSet(vars[i].getDomainSize());
         }
     }
 
@@ -86,7 +86,7 @@ public class PropLargeMDDC extends Propagator<IntVar> {
         mddcSeekSupport(0, 0);
         for (int i = 0; i < nvars; i++) {
             int o = MDD.getOffset(i);
-            int[] values = sets[i].toArray();
+            int[] values = sets[i].toIntArray();
             for (int j = 0; j < values.length; j++) {
                 vars[i].removeValue(values[j] + o, this);
             }

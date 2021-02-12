@@ -9,8 +9,7 @@
  */
 package org.chocosolver.solver.variables.impl;
 
-import gnu.trove.set.hash.TIntHashSet;
-
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import org.chocosolver.solver.ICause;
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.constraints.Constraint;
@@ -62,8 +61,8 @@ public class SetVarImpl extends AbstractVariable implements SetVar {
 	 */
 	public SetVarImpl(String name, int[] ker, SetType kerType, int[] env, SetType envType, Model model) {
 		super(name, model);
-		ker = new TIntHashSet(ker).toArray();
-		env = new TIntHashSet(env).toArray();
+		ker = new IntOpenHashSet(ker).toIntArray();
+		env = new IntOpenHashSet(env).toIntArray();
 		int offSet = env.length>0?env[0]:0;
 		for(int i:env){
 			offSet = Math.min(offSet,i);
@@ -136,7 +135,7 @@ public class SetVarImpl extends AbstractVariable implements SetVar {
 	 */
 	public SetVarImpl(String name, int[] value, Model model) {
 		super(name, model);
-		lb = SetFactory.makeConstantSet(new TIntHashSet(value).toArray());
+		lb = SetFactory.makeConstantSet(new IntOpenHashSet(value).toIntArray());
 		ub = lb;
 		lbReadOnly = new Set_ReadOnly(lb);
 		ubReadOnly = new Set_ReadOnly(ub);
@@ -255,7 +254,7 @@ public class SetVarImpl extends AbstractVariable implements SetVar {
     }
 
     @Override
-    protected EvtScheduler createScheduler() {
+    protected EvtScheduler<SetEventType> createScheduler() {
         return new SetEvtScheduler();
     }
 

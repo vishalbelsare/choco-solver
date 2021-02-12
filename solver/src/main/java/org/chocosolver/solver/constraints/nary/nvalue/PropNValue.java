@@ -9,8 +9,9 @@
  */
 package org.chocosolver.solver.constraints.nary.nvalue;
 
-import gnu.trove.list.array.TIntArrayList;
-import gnu.trove.set.hash.TIntHashSet;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
+import it.unimi.dsi.fastutil.ints.IntSet;
 import org.chocosolver.solver.constraints.Propagator;
 import org.chocosolver.solver.constraints.PropagatorPriority;
 import org.chocosolver.solver.exception.ContradictionException;
@@ -31,20 +32,20 @@ import java.util.Random;
  * @since 13/03/2020
 */
 public class PropNValue extends Propagator<IntVar> {
-    private IntVar nValue;
+    private final IntVar nValue;
     private final int n;
-    private int[] concernedValues;
-    private int[] witness;
-    private ISet mandatoryValues;
-    private ISet possibleValues;
-    private TIntArrayList listForRandomPick;
-    private Random rnd = new Random(vars[0].getModel().getSeed());
+    private final int[] concernedValues;
+    private final int[] witness;
+    private final ISet mandatoryValues;
+    private final ISet possibleValues;
+    private final IntArrayList listForRandomPick;
+    private final Random rnd = new Random(vars[0].getModel().getSeed());
 
     public PropNValue(IntVar[] vars, IntVar nvalue) {
         super(ArrayUtils.concat(vars, nvalue), PropagatorPriority.LINEAR, false);
         this.nValue = nvalue;
         n = vars.length;
-        TIntHashSet set = new TIntHashSet();
+        IntSet set = new IntOpenHashSet();
         int min = Integer.MAX_VALUE;
         for(int i = 0; i<vars.length; i++) {
             for(int value = vars[i].getLB(); value <= vars[i].getUB(); value = vars[i].nextValue(value)) {
@@ -52,12 +53,12 @@ public class PropNValue extends Propagator<IntVar> {
                 min = Math.min(min, value);
             }
         }
-        concernedValues = set.toArray();
+        concernedValues = set.toIntArray();
         possibleValues = SetFactory.makeStoredSet(SetType.BITSET, min, model);
         mandatoryValues = SetFactory.makeStoredSet(SetType.BITSET, min, model);
         witness = new int[concernedValues.length];
         Arrays.fill(witness, -1);
-        listForRandomPick = new TIntArrayList();
+        listForRandomPick = new IntArrayList();
         for(int j = 0; j<witness.length; j++) {
             possibleValues.add(concernedValues[j]);
             selectRandomWitness(j);
@@ -103,7 +104,7 @@ public class PropNValue extends Propagator<IntVar> {
         if(listForRandomPick.size() == 0) {
             possibleValues.remove(value);
         } else {
-            witness[idxConcernedValue] = listForRandomPick.getQuick(rnd.nextInt(listForRandomPick.size()));
+            witness[idxConcernedValue] = listForRandomPick.getInt(rnd.nextInt(listForRandomPick.size()));
         }
     }
 

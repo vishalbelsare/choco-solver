@@ -7,16 +7,9 @@
  *
  * See LICENSE file in the project root for full license information.
  */
-/**
- * Created by IntelliJ IDEA.
- * User: Jean-Guillaume Fages
- * Date: 03/10/11
- * Time: 19:56
- */
-
 package org.chocosolver.solver.constraints.nary.circuit;
 
-import gnu.trove.list.array.TIntArrayList;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 import org.chocosolver.memory.IEnvironment;
 import org.chocosolver.memory.IStateInt;
 import org.chocosolver.solver.constraints.Propagator;
@@ -40,10 +33,12 @@ public class PropSubcircuit extends Propagator<IntVar> {
     // VARIABLES
     //***********************************************************************************
 
-    private int n;
-    private int offset; // lower bound
-    private IntVar length;
-    private IStateInt[] origin, end, size;
+    private final int n;
+    private final int offset; // lower bound
+    private final IntVar length;
+    private final IStateInt[] origin;
+    private final IStateInt[] end;
+    private final IStateInt[] size;
 
     //***********************************************************************************
     // CONSTRUCTORS
@@ -78,7 +73,7 @@ public class PropSubcircuit extends Propagator<IntVar> {
             end[i].set(i);
             size[i].set(1);
         }
-        TIntArrayList fixedVar = new TIntArrayList();
+        IntArrayList fixedVar = new IntArrayList();
         for (int i = 0; i < n; i++) {
             vars[i].updateBounds(offset, n - 1 + offset, this);
             if (vars[i].isInstantiated() && i + offset != vars[i].getValue()) {
@@ -86,7 +81,7 @@ public class PropSubcircuit extends Propagator<IntVar> {
             }
         }
         for (int i = 0; i < fixedVar.size(); i++) {
-            varInstantiated(fixedVar.get(i), vars[fixedVar.get(i)].getValue() - offset);
+            varInstantiated(fixedVar.getInt(i), vars[fixedVar.getInt(i)].getValue() - offset);
         }
     }
 
@@ -105,6 +100,7 @@ public class PropSubcircuit extends Propagator<IntVar> {
      * @param val dest
      * @throws ContradictionException if failure occurs
      */
+    @SuppressWarnings("DuplicatedCode")
     private void varInstantiated(int var, int val) throws ContradictionException {
         if (isPassive()) {
             return;

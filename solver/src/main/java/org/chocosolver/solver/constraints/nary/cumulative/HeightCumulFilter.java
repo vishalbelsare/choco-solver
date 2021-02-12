@@ -34,9 +34,9 @@ public class HeightCumulFilter extends SweepCumulFilter {
 	//***********************************************************************************
 
 	// do not filter min and max (heights only)
-	protected void pruneMin(IntVar[] s) throws ContradictionException {}
-	protected void pruneMax(IntVar[] e) throws ContradictionException {}
+	protected void pruneMin() {}
 
+	@SuppressWarnings("DuplicatedCode")
 	protected boolean sweep(IntVar capamax, IntVar[] h, int nbT, Propagator<IntVar> aCause) throws ContradictionException {
 		generateMinEvents(nbT);
 		if(nbEvents==0){
@@ -46,7 +46,7 @@ public class HeightCumulFilter extends SweepCumulFilter {
 		//Arrays.sort(events,0,nbEvents,eventComparator);
 		int timeIndex = 0;
 		int currentDate = events[timeIndex].date;
-		tprune.resetQuick();
+		tprune.clear();
 		int capa = capamax.getUB();
 		int currentConso = 0;
 		while(timeIndex<nbEvents) {
@@ -55,9 +55,9 @@ public class HeightCumulFilter extends SweepCumulFilter {
 			// pruning
 			if(currentDate<nextDate) {
 				assert currentConso<=capa;
-				temp.resetQuick();
+				temp.clear();
 				for(int i=tprune.size()-1;i>=0;i--){
-					int index = tprune.get(i);
+					int index = tprune.getInt(i);
 					// the envelope overlaps the event
 					assert (sub[index]<=currentDate && currentDate < elb[index]);
 					// filter consumption variable from remaining capacity
@@ -66,9 +66,9 @@ public class HeightCumulFilter extends SweepCumulFilter {
 						temp.add(index);
 					}
 				}
-				tprune.resetQuick();
+				tprune.clear();
 				for(int i=temp.size()-1;i>=0;i--){
-					tprune.add(temp.getQuick(i));
+					tprune.add(temp.getInt(i));
 				}
 			}
 			// handle the current event

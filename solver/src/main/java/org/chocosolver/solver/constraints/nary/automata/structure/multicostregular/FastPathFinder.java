@@ -10,12 +10,13 @@
 package org.chocosolver.solver.constraints.nary.automata.structure.multicostregular;
 
 
-import gnu.trove.stack.TIntStack;
-import java.util.Arrays;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 import org.chocosolver.solver.constraints.nary.automata.PropMultiCostRegular;
 import org.chocosolver.solver.exception.ContradictionException;
 import org.chocosolver.solver.variables.IntVar;
 import org.chocosolver.util.objects.StoredIndexedBipartiteSet;
+
+import java.util.Arrays;
 
 /**
  * Created by IntelliJ IDEA.
@@ -30,18 +31,21 @@ public class FastPathFinder {
    	// VARIABLES
    	//***********************************************************************************
 
-    private StoredDirectedMultiGraph graph;
-    private int[] sp;
-    private int nbLayer;
-    private int nbR;
+    private final StoredDirectedMultiGraph graph;
+    private final int[] sp;
+    private final int nbLayer;
+    private final int nbR;
     public double[][] spfs;// = new double[graph.GNodes.spfs.length][graph.nbR+1];
     public double[][] spft;// = new double[graph.GNodes.spfs.length][graph.nbR+1];
-    private double[][] lpfs;// = new double[graph.GNodes.spfs.length][graph.nbR+1];
-    private double[][] lpft;// = new double[graph.GNodes.spfs.length][graph.nbR+1];
-    private boolean[] modified = new boolean[2];
+    private final double[][] lpfs;// = new double[graph.GNodes.spfs.length][graph.nbR+1];
+    private final double[][] lpft;// = new double[graph.GNodes.spfs.length][graph.nbR+1];
+    private final boolean[] modified = new boolean[2];
     // prevSP is a shortcut to graph.GNodes.prevSPI
-    private int[][] prevSP,nextSP,prevLP,nextLP;
-    private double[] tmpU;
+    private final int[][] prevSP;
+    private final int[][] nextSP;
+    private final int[][] prevLP;
+    private final int[][] nextLP;
+    private final double[] tmpU;
 
     //***********************************************************************************
    	// CONSTRUCTOR
@@ -97,7 +101,7 @@ public class FastPathFinder {
         return true;
     }
 
-    public void computeLongestPath(TIntStack removed, double lb, double[] u, boolean lagrange, boolean max,
+    public void computeLongestPath(IntArrayList removed, double lb, double[] u, boolean lagrange, boolean max,
                                    int resource, PropMultiCostRegular propagator) throws ContradictionException {
 
         boolean update;
@@ -209,7 +213,7 @@ public class FastPathFinder {
         return sp;
     }
 
-    public void computeShortestPath(TIntStack removed, double ub, double[] u, boolean lagrange, boolean max,
+    public void computeShortestPath(IntArrayList removed, double ub, double[] u, boolean lagrange, boolean max,
                                     int resource, PropMultiCostRegular propagator) throws ContradictionException {
 
         graph.GNodes.spfs[graph.sourceIndex] = 0.0;
@@ -317,7 +321,7 @@ public class FastPathFinder {
         return sp;
     }
 
-    public boolean[] computeShortestAndLongestPath(TIntStack removed, IntVar[] z,
+    public boolean[] computeShortestAndLongestPath(IntArrayList removed, IntVar[] z,
                                                    PropMultiCostRegular propagator) throws ContradictionException {
 
         int nbr = z.length;

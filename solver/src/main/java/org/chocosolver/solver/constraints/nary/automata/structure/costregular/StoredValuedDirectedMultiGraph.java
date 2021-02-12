@@ -9,9 +9,10 @@
  */
 package org.chocosolver.solver.constraints.nary.automata.structure.costregular;
 
-import gnu.trove.set.hash.TIntHashSet;
-import gnu.trove.stack.TIntStack;
-import gnu.trove.stack.array.TIntArrayStack;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
+import it.unimi.dsi.fastutil.ints.IntSet;
+import it.unimi.dsi.fastutil.ints.IntStack;
 import org.chocosolver.memory.IEnvironment;
 import org.chocosolver.memory.IStateDoubleVector;
 import org.chocosolver.memory.IStateIntVector;
@@ -41,16 +42,16 @@ public class StoredValuedDirectedMultiGraph {
    	// VARIABLES
    	//***********************************************************************************
 
-    private int[] starts;
-    private int[] offsets;
+    private final int[] starts;
+    private final int[] offsets;
     public int sourceIndex;
     public int tinkIndex;
-    private StoredIndexedBipartiteSetWithOffset[] supports;
+    private final StoredIndexedBipartiteSetWithOffset[] supports;
     public int[][] layers;
     public BitSet inStack;
     public StoredIndexedBipartiteSet inGraph;
-    public TIntStack toUpdateLeft;
-    public TIntStack toUpdateRight;
+    public IntArrayList toUpdateLeft;
+    public IntArrayList toUpdateRight;
     public Nodes GNodes;
     public Arcs GArcs;
 
@@ -66,13 +67,13 @@ public class StoredValuedDirectedMultiGraph {
         this.layers = layers;
         this.sourceIndex = layers[0][0];
         this.tinkIndex = layers[layers.length - 1][0];
-        this.toUpdateLeft = new TIntArrayStack();
-        this.toUpdateRight = new TIntArrayStack();
+        this.toUpdateLeft = new IntArrayList();
+        this.toUpdateRight = new IntArrayList();
 
         this.GNodes = new Nodes();
         this.GArcs = new Arcs();
 
-        TIntHashSet[] sups = new TIntHashSet[supportLength];
+        IntSet[] sups = new IntSet[supportLength];
         this.supports = new StoredIndexedBipartiteSetWithOffset[supportLength];
 
         Set<Arc> arcs = graph.edgeSet();
@@ -97,7 +98,7 @@ public class StoredValuedDirectedMultiGraph {
             if (a.orig.layer < starts.length) {
                 int idx = starts[a.orig.layer] + a.value - offsets[a.orig.layer];
                 if (sups[idx] == null)
-                    sups[idx] = new TIntHashSet();
+                    sups[idx] = new IntOpenHashSet();
                 sups[idx].add(a.id);
             }
 
@@ -109,7 +110,7 @@ public class StoredValuedDirectedMultiGraph {
         // System.out.println(this.inGraph.size());
         for (int i = 0; i < sups.length; i++) {
             if (sups[i] != null)
-                supports[i] = new StoredIndexedBipartiteSetWithOffset(environment, sups[i].toArray());
+                supports[i] = new StoredIndexedBipartiteSetWithOffset(environment, sups[i].toIntArray());
         }
 
         Set<Node> nodes = graph.vertexSet();
@@ -222,7 +223,7 @@ public class StoredValuedDirectedMultiGraph {
         return supports[idx];
     }
 
-    public void removeArc(int arcId, TIntStack toRemove, Propagator<IntVar> propagator, ICause aCause) throws ContradictionException {
+    public void removeArc(int arcId, IntStack toRemove, Propagator<IntVar> propagator, ICause aCause) throws ContradictionException {
         clearInStack(arcId);
         inGraph.remove(arcId);
 
@@ -258,7 +259,7 @@ public class StoredValuedDirectedMultiGraph {
         }
     }
 
-    public void updateRight(int nid, TIntStack toRemove, Propagator<IntVar> propagator) {
+    public void updateRight(int nid, IntStack toRemove, Propagator<IntVar> propagator) {
 
         double tempPval = Double.POSITIVE_INFINITY;
         double tempPval2 = Double.NEGATIVE_INFINITY;
@@ -310,7 +311,7 @@ public class StoredValuedDirectedMultiGraph {
         }
     }
 
-    public void updateLeft(int nid, TIntStack toRemove, Propagator<IntVar> propagator) {
+    public void updateLeft(int nid, IntStack toRemove, Propagator<IntVar> propagator) {
         double tempPval = Double.POSITIVE_INFINITY;
         int tempP = Integer.MIN_VALUE;
 
@@ -394,7 +395,7 @@ public class StoredValuedDirectedMultiGraph {
    	// INNER CLASSES
    	//***********************************************************************************
 
-    public class Nodes {
+    public static class Nodes {
         public int[] states;
         public int[] layers;
         public StoredIndexedBipartiteSetWithOffset[] outArcs;
@@ -412,7 +413,7 @@ public class StoredValuedDirectedMultiGraph {
 
     }
 
-    public class Arcs {
+    public static class Arcs {
         public int[] values;
         public int[] dests;
         public int[] origs;

@@ -9,7 +9,8 @@
  */
 package org.chocosolver.solver;
 
-import gnu.trove.map.hash.TIntObjectHashMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import org.chocosolver.memory.EnvironmentBuilder;
 import org.chocosolver.memory.IEnvironment;
 import org.chocosolver.solver.constraints.Constraint;
@@ -82,7 +83,7 @@ public class Model implements IModel {
     /**
      * A map to cache constants (considered as fixed variables)
      */
-    private TIntObjectHashMap<IntVar> cachedConstants;
+    private final Int2ObjectMap<IntVar> cachedConstants;
 
     /**
      * Variables of the model
@@ -148,7 +149,7 @@ public class Model implements IModel {
     /**
      * Stores this model's creation time -- in nanoseconds
      */
-    private long creationTime;
+    private final long creationTime;
 
     /**
      * Counter used to set ids to variables and propagators
@@ -163,7 +164,7 @@ public class Model implements IModel {
     /**
      * Enable attaching hooks to a model.
      */
-    private Map<String, Object> hooks;
+    private final Map<String, Object> hooks;
 
     /**
      * Resolution policy (sat/min/max)
@@ -195,7 +196,7 @@ public class Model implements IModel {
         this.cIdx = 0;
         this.environment = environment;
         this.creationTime = System.nanoTime();
-        this.cachedConstants = new TIntObjectHashMap<>(16, 1.5f, Integer.MAX_VALUE);
+        this.cachedConstants = new Int2ObjectOpenHashMap<>();
         this.objective = null;
         this.hooks = new HashMap<>();
         this.settings = settings;
@@ -297,7 +298,7 @@ public class Model implements IModel {
      *
      * @return the map of constant IntVar having default names.
      */
-    public TIntObjectHashMap<IntVar> getCachedConstants() {
+    public Int2ObjectMap<IntVar> getCachedConstants() {
         return cachedConstants;
     }
 
@@ -671,7 +672,6 @@ public class Model implements IModel {
      * @see IObjectiveManager#setWalkingDynamicCut()
      * @see IObjectiveManager#setCutComputer(Function)
      */
-    @SuppressWarnings("unchecked")
     public void setObjective(boolean maximize, Variable objective) {
         if (objective == null) {
             throw new SolverException("Cannot set objective to null");
@@ -893,6 +893,7 @@ public class Model implements IModel {
         }
         // specific behavior for dynamic addition and/or reified constraints
         for (Constraint c : cs) {
+            //noinspection rawtypes
             for (Propagator p : c.getPropagators()) {
                 if(p.isPassive()){
                     throw new SolverException("Try to add a constraint with a passive propagator");
@@ -928,6 +929,7 @@ public class Model implements IModel {
                             "A call to Model.post(Constraint) is more appropriate.");
                 }
                 if (getSolver().getEngine().isInitialized()) {
+                    //noinspection rawtypes
                     for (Propagator p : c.getPropagators()) {
                         getSolver().getEngine().execute(p);
                     }
@@ -963,6 +965,7 @@ public class Model implements IModel {
                     engine.dynamicDeletion(c.getPropagators());
                 }
                 // 4. remove the propagators of the constraint from its variables
+                //noinspection rawtypes
                 for (Propagator prop : c.getPropagators()) {
                     prop.unlinkVariables();
                 }

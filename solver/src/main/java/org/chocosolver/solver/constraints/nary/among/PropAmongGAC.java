@@ -9,7 +9,8 @@
  */
 package org.chocosolver.solver.constraints.nary.among;
 
-import gnu.trove.set.hash.TIntHashSet;
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
+import it.unimi.dsi.fastutil.ints.IntSet;
 import org.chocosolver.memory.IEnvironment;
 import org.chocosolver.memory.IStateInt;
 import org.chocosolver.solver.constraints.Propagator;
@@ -45,9 +46,9 @@ public class PropAmongGAC extends Propagator<IntVar> {
 
     private final int nb_vars;        // number of decision variables (excludes the cardinality variable)
     private final int[] values;        // value set (array)
-    private TIntHashSet setValues;    // value set (set)
-    private ISet poss;                // variable set possibly assigned to a value in the value set
-    private IStateInt nbSure;        // number of variables that are assigned to such value for sure
+    private final IntSet setValues;    // value set (set)
+    private final ISet poss;                // variable set possibly assigned to a value in the value set
+    private final IStateInt nbSure;        // number of variables that are assigned to such value for sure
 
     //***********************************************************************************
     // CONSTRUCTOR
@@ -64,8 +65,8 @@ public class PropAmongGAC extends Propagator<IntVar> {
         super(variables, PropagatorPriority.LINEAR, true);
         nb_vars = variables.length - 1;
         IEnvironment environment = model.getEnvironment();
-        this.setValues = new TIntHashSet(values);
-        this.values = setValues.toArray();
+        this.setValues = new IntOpenHashSet(values);
+        this.values = setValues.toIntArray();
         Arrays.sort(this.values);
 		poss = SetFactory.makeStoredSet(SetType.BIPARTITESET, 0, model);
 		nbSure = environment.makeInt(0);

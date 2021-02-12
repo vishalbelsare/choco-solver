@@ -9,7 +9,7 @@
  */
 package org.chocosolver.util.objects.setDataStructures.constant;
 
-import gnu.trove.set.hash.TIntHashSet;
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import org.chocosolver.util.objects.setDataStructures.ISet;
 import org.chocosolver.util.objects.setDataStructures.ISetIterator;
 import org.chocosolver.util.objects.setDataStructures.SetType;
@@ -39,7 +39,7 @@ public class Set_FixedArray implements ISet {
 	 * Creates an empty array of integers
 	 */
 	public Set_FixedArray(int[] vls){
-		values = new TIntHashSet(vls).toArray();
+		values = new IntOpenHashSet(vls).toIntArray();
 		Arrays.sort(values);
 		size = values.length;
 	}
@@ -109,6 +109,7 @@ public class Set_FixedArray implements ISet {
 	// ITERATOR
 	//***********************************************************************************
 
+	@SuppressWarnings("NullableProblems")
 	@Override
 	public ISetIterator iterator(){
 		iter.reset();

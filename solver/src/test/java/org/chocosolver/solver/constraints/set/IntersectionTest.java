@@ -9,8 +9,8 @@
  */
 package org.chocosolver.solver.constraints.set;
 
-import gnu.trove.set.TIntSet;
-import gnu.trove.set.hash.TIntHashSet;
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
+import it.unimi.dsi.fastutil.ints.IntSet;
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.Solver;
 import org.chocosolver.solver.exception.ContradictionException;
@@ -61,7 +61,7 @@ public class IntersectionTest {
     public void testVarsToIntersect() {
         Model model = new Model();
         SetVar[] setVars = model.setVarArray(5, new int[]{}, new int[]{1, 2, 3, 4, 5, 6});
-        SetVar intersect = model.setVar(new int[]{1, 2, 3, 4});
+        SetVar intersect = model.setVar(1, 2, 3, 4);
         model.intersection(setVars, intersect).post();
 
         assertEquals(961, checkSolutions(model, setVars, intersect));
@@ -71,7 +71,7 @@ public class IntersectionTest {
     public void testVarsToIntersectBoundConsistent() {
         Model model = new Model();
         SetVar[] setVars = model.setVarArray(5, new int[]{}, new int[]{1, 2, 3, 4, 5, 6});
-        SetVar intersect = model.setVar(new int[]{1, 2, 3, 4});
+        SetVar intersect = model.setVar(1, 2, 3, 4);
         model.intersection(setVars, intersect, true).post();
 
         assertEquals(961, checkSolutions(model, setVars, intersect));
@@ -81,9 +81,9 @@ public class IntersectionTest {
     public void testIntersectToVars() {
         Model model = new Model();
         SetVar[] setVars = new SetVar[3];
-        setVars[0] = model.setVar(new int[]{0, 1, 2});
-        setVars[1] = model.setVar(new int[]{1, 2, 3});
-        setVars[2] = model.setVar(new int[]{2, 4, 5});
+        setVars[0] = model.setVar(0, 1, 2);
+        setVars[1] = model.setVar(1, 2, 3);
+        setVars[2] = model.setVar(2, 4, 5);
         SetVar intersect = model.setVar(new int[]{}, new int[]{0, 1, 2, 3, 4, 5, 6, 7, 8, 9});
         model.intersection(setVars, intersect).post();
 
@@ -94,9 +94,9 @@ public class IntersectionTest {
     public void testIntersectToVarsBoundConsistent() {
         Model model = new Model();
         SetVar[] setVars = new SetVar[3];
-        setVars[0] = model.setVar(new int[]{0, 1, 2});
-        setVars[1] = model.setVar(new int[]{1, 2, 3});
-        setVars[2] = model.setVar(new int[]{2, 4, 5});
+        setVars[0] = model.setVar(0, 1, 2);
+        setVars[1] = model.setVar(1, 2, 3);
+        setVars[2] = model.setVar(2, 4, 5);
         SetVar intersect = model.setVar(new int[]{}, new int[]{0, 1, 2, 3, 4, 5, 6, 7, 8, 9});
         model.intersection(setVars, intersect, true).post();
 
@@ -110,7 +110,7 @@ public class IntersectionTest {
         setVars[0] = model.setVar(new int[]{}, new int[]{1, 2, 4, 5});
         setVars[1] = model.setVar(new int[]{}, new int[]{3, 5});
         setVars[2] = model.setVar(new int[]{}, new int[]{1, 2, 3, 4, 5});
-        SetVar intersect = model.setVar(new int[]{1, 2, 3, 4, 5});
+        SetVar intersect = model.setVar(1, 2, 3, 4, 5);
         model.intersection(setVars, intersect).post();
 
         assertEquals(model.getSolver().isSatisfied(), ESat.FALSE);
@@ -119,9 +119,9 @@ public class IntersectionTest {
 
     private final Random rand = new Random();
 
-    private TIntSet randIntSet() {
+    private IntSet randIntSet() {
         int size = rand.nextInt(6);
-        TIntSet set = new TIntHashSet(size);
+        IntSet set = new IntOpenHashSet(size);
         for (int i = 0; i < size; i++) {
             set.add(rand.nextInt(5));
         }
@@ -129,10 +129,10 @@ public class IntersectionTest {
     }
 
     private SetVar randSet(String name, Model model) {
-        TIntSet lb = randIntSet();
-        TIntSet ub = randIntSet();
+        IntSet lb = randIntSet();
+        IntSet ub = randIntSet();
         ub.addAll(lb);
-        return model.setVar(name, lb.toArray(), ub.toArray());
+        return model.setVar(name, lb.toIntArray(), ub.toIntArray());
     }
 
     private SetStrategy randomSearch(SetVar... vars) {
@@ -190,7 +190,7 @@ public class IntersectionTest {
     }
 
     // Throws an error when bound consistency is violated.
-    public class BoundConsistent implements IMonitorDownBranch, IMonitorContradiction {
+    public static class BoundConsistent implements IMonitorDownBranch, IMonitorContradiction {
 
         private final Solver solver;
         private final StringBuilder lastDecision = new StringBuilder();

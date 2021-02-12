@@ -7,16 +7,9 @@
  *
  * See LICENSE file in the project root for full license information.
  */
-/**
- * Created by IntelliJ IDEA.
- * User: Jean-Guillaume Fages
- * Date: 14/01/13
- * Time: 16:36
- */
-
 package org.chocosolver.solver.constraints.set;
 
-import gnu.trove.list.array.TIntArrayList;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 import org.chocosolver.solver.constraints.Propagator;
 import org.chocosolver.solver.constraints.PropagatorPriority;
 import org.chocosolver.solver.exception.ContradictionException;
@@ -40,11 +33,11 @@ public class PropElement extends Propagator<Variable> {
     // VARIABLES
     //***********************************************************************************
 
-    private TIntArrayList constructiveDisjunction;
-    private IntVar index;
-    private SetVar set;
-    private SetVar[] array;
-    private int offSet;
+    private final IntArrayList constructiveDisjunction;
+    private final IntVar index;
+    private final SetVar set;
+    private final SetVar[] array;
+    private final int offSet;
 
     //***********************************************************************************
     // CONSTRUCTORS
@@ -68,7 +61,7 @@ public class PropElement extends Propagator<Variable> {
             this.array[i] = (SetVar) vars[i];
         }
         this.offSet = offSet;
-        constructiveDisjunction = new TIntArrayList();
+        constructiveDisjunction = new IntArrayList();
     }
 
     //***********************************************************************************
@@ -107,16 +100,16 @@ public class PropElement extends Propagator<Variable> {
                     }
                 }
                 for (int cd = constructiveDisjunction.size() - 1; cd >= 0; cd--) {
-                    int j = constructiveDisjunction.get(cd);
+                    int j = constructiveDisjunction.getInt(cd);
                     for (int i = index.nextValue(index.getLB()); i <= ub; i = index.nextValue(i)) {
                         if (!array[i - offSet].getLB().contains(j)) {
-                            constructiveDisjunction.remove(j);
+                            constructiveDisjunction.removeIf(k -> k == j);
                             break;
                         }
                     }
                 }
                 for (int cd = constructiveDisjunction.size() - 1; cd >= 0; cd--) {
-                    int j = constructiveDisjunction.get(cd);
+                    int j = constructiveDisjunction.getInt(cd);
                     set.force(j, this);
                 }
             }

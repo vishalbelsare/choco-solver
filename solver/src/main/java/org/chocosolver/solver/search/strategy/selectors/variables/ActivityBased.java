@@ -10,8 +10,8 @@
 package org.chocosolver.solver.search.strategy.selectors.variables;
 
 
-import gnu.trove.list.TIntList;
-import gnu.trove.list.array.TIntArrayList;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.ints.IntList;
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.Solver;
 import org.chocosolver.solver.search.limits.FailCounter;
@@ -118,13 +118,13 @@ public class ActivityBased extends AbstractStrategy<IntVar> implements IMonitorD
 
     private int nb_probes; // probing size
 
-    private int samplingIterationForced; // CPRU: add this to force sampling phase
+    private final int samplingIterationForced; // CPRU: add this to force sampling phase
 
-    private Random random; //  a random object for the sampling phase
+    private final Random random; //  a random object for the sampling phase
 
     private int currentVar = -1, currentVal = -1;
 
-    private TIntList bests = new TIntArrayList();
+    private final IntList bests = new IntArrayList();
 
     private boolean restartAfterEachFail = true;
 
@@ -255,7 +255,7 @@ public class ActivityBased extends AbstractStrategy<IntVar> implements IMonitorD
             }
         }
         if (bests.size() > 0) {
-            currentVar = bests.get(random.nextInt(bests.size()));
+            currentVar = bests.getInt(random.nextInt(bests.size()));
             best = vars[currentVar];
         }
         return computeDecision(best);
@@ -426,7 +426,7 @@ public class ActivityBased extends AbstractStrategy<IntVar> implements IMonitorD
                             bests.add(value);
                         }
                     }
-                    currentVal = bests.get(random.nextInt(bests.size()));
+                    currentVal = bests.getInt(random.nextInt(bests.size()));
                 } else {
                     int lb = variable.getLB();
                     int ub = variable.getUB();
