@@ -9,9 +9,9 @@
  */
 package org.chocosolver.examples.integer;
 
-import gnu.trove.list.TIntList;
-import gnu.trove.list.array.TIntArrayList;
-import gnu.trove.set.hash.TIntHashSet;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
+import it.unimi.dsi.fastutil.ints.IntSet;
 import org.chocosolver.examples.AbstractProblem;
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.search.limits.FailCounter;
@@ -46,9 +46,9 @@ import static org.chocosolver.solver.search.strategy.Search.domOverWDegSearch;
  */
 public class RLFAP extends AbstractProblem {
 
-    private static String DOM = "dom.txt";
-    private static String VAR = "var.txt";
-    private static String CTR = "ctr.txt";
+    private static final String DOM = "dom.txt";
+    private static final String VAR = "var.txt";
+    private static final String CTR = "ctr.txt";
 
     @Option(name = "-d", aliases = "--directory", usage = "RLFAP instance directory (see http://www.inra.fr/mia/T/schiex/Export/FullRLFAP.tgz).", required = true)
     String dir;
@@ -73,7 +73,7 @@ public class RLFAP extends AbstractProblem {
         _var = readVAR(dir + File.separator + VAR);
         _ctr = readCTR(dir + File.separator + CTR);
 
-        TIntHashSet values = new TIntHashSet();
+        IntSet values = new IntOpenHashSet();
 
         vars = new IntVar[_var.length];
 
@@ -83,7 +83,7 @@ public class RLFAP extends AbstractProblem {
         for (int i = 0; i < _var.length; i++) {
             int vidx = _var[i][0] - 1;
             if (vidx > prev) {
-                for (; prev < vidx; ) {
+                while (prev < vidx) {
                     vars[prev++] = model.intVar(0);
                 }
             }
@@ -92,7 +92,7 @@ public class RLFAP extends AbstractProblem {
                 vars[vidx] = model.intVar(_var[i][2]);
             } else {
                 vars[vidx] = model.intVar("v_" + vidx, _dom[didx]);
-                values.addAll(_dom[didx]);
+                Arrays.stream(_dom[didx]).forEach(values::add);
             }
             prev = vidx + 1;
         }
@@ -109,7 +109,7 @@ public class RLFAP extends AbstractProblem {
         }
         if (opt) {
             cards = model.intVarArray("c", values.size(), 0, vars.length, true);
-            freqs = values.toArray();
+            freqs = values.toIntArray();
             sort(freqs);
             for (int i = 0; i < freqs.length; i++) {
                 model.count(freqs[i], vars, cards[i]).post();
@@ -157,7 +157,7 @@ public class RLFAP extends AbstractProblem {
     }
 
     private void prettyOut() {
-        System.out.println(String.format("RLFAP %s", dir));
+        System.out.printf("RLFAP %s%n", dir);
         StringBuilder st = new StringBuilder();
         if (model.getSolver().isFeasible() == ESat.TRUE) {
             st.append("\t");
@@ -188,7 +188,7 @@ public class RLFAP extends AbstractProblem {
     protected int[][] readDOM(String filename) {
         FileReader f;
         String line;
-        TIntHashSet values = new TIntHashSet();
+        IntSet values = new IntOpenHashSet();
         try {
             f = new FileReader(filename);
             BufferedReader r = new BufferedReader(f);
@@ -199,7 +199,7 @@ public class RLFAP extends AbstractProblem {
                 while (sc.hasNextInt()) {
                     values.add(sc.nextInt());
                 }
-                domains.add(values.toArray());
+                domains.add(values.toIntArray());
                 values.clear();
             }
             int[][] data = new int[domains.size()][];
@@ -218,7 +218,7 @@ public class RLFAP extends AbstractProblem {
     protected int[][] readVAR(String filename) {
         FileReader f;
         String line;
-        TIntList values = new TIntArrayList();
+        IntArrayList values = new IntArrayList();
         try {
             f = new FileReader(filename);
             BufferedReader r = new BufferedReader(f);
@@ -228,7 +228,7 @@ public class RLFAP extends AbstractProblem {
                 while (sc.hasNextInt()) {
                     values.add(sc.nextInt());
                 }
-                ints.add(values.toArray());
+                ints.add(values.toIntArray());
                 values.clear();
             }
             int[][] data = new int[ints.size()][];
@@ -248,7 +248,7 @@ public class RLFAP extends AbstractProblem {
     protected int[][] readCTR(String filename) {
         FileReader f;
         String line;
-        TIntList values = new TIntArrayList();
+        IntArrayList values = new IntArrayList();
         try {
             f = new FileReader(filename);
             BufferedReader r = new BufferedReader(f);
@@ -260,7 +260,7 @@ public class RLFAP extends AbstractProblem {
                 sc.next();
                 values.add(sc.next().equals("=") ? 0 : 1);
                 values.add(sc.nextInt());
-                ints.add(values.toArray());
+                ints.add(values.toIntArray());
                 values.clear();
             }
             int[][] data = new int[ints.size()][];

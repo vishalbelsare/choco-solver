@@ -9,7 +9,7 @@
  */
 package org.chocosolver.examples.integer;
 
-import gnu.trove.map.hash.TObjectIntHashMap;
+import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import org.chocosolver.examples.AbstractProblem;
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.Solver;
@@ -48,7 +48,7 @@ public class AirPlaneLanding extends AbstractProblem {
     private static final String groupSeparator = "\\,";
     private static final String decimalSeparator = "\\.";
     private static final String non0Digit = "[\\p{javaDigit}&&[^0]]";
-    private static Pattern decimalPattern;
+    private static final Pattern decimalPattern;
 
     static {
         // \\p{javaDigit} may not be perfect, see above
@@ -65,7 +65,7 @@ public class AirPlaneLanding extends AbstractProblem {
     }
 
 
-    @Option(name = "-d", usage = "Airplane landing Data.", required = false)
+    @Option(name = "-d", usage = "Airplane landing Data.")
     Data mData = Data.airland1;
 
     //DATA
@@ -84,7 +84,7 @@ public class AirPlaneLanding extends AbstractProblem {
     IntVar[] planes, tardiness, earliness;
     BoolVar[] bVars;
     int[] costLAT;
-    TObjectIntHashMap<IntVar> maxCost;
+    Object2IntOpenHashMap<IntVar> maxCost;
 
     IntVar objective;
 
@@ -118,13 +118,13 @@ public class AirPlaneLanding extends AbstractProblem {
             }
         }
 
-        bVars = booleans.toArray(new BoolVar[booleans.size()]);
+        bVars = booleans.toArray(new BoolVar[0]);
 
         objective = model.intVar("obj", 0, 999999, true);
 
         // build C array
         costLAT = new int[2 * n];
-        maxCost = new TObjectIntHashMap<>();
+        maxCost = new Object2IntOpenHashMap<>();
         for (int i = 0; i < n; i++) {
             costLAT[i] = data[i][PCBT];
             costLAT[n + i] = data[i][PCAT];
@@ -164,7 +164,7 @@ public class AirPlaneLanding extends AbstractProblem {
     }
 
     private void prettyOut() {
-        System.out.println(String.format("Air plane landing(%s)", mData));
+        System.out.printf("Air plane landing(%s)%n", mData);
         StringBuilder st = new StringBuilder();
         if (model.getSolver().isFeasible() != ESat.TRUE) {
             st.append("\tINFEASIBLE");
@@ -176,7 +176,7 @@ public class AirPlaneLanding extends AbstractProblem {
                         planes[i].getValue() - data[i][TT]);
             }
         }
-//        System.out.println(st.toString());
+        System.out.println(st.toString());
     }
 
     public static void main(String[] args) {

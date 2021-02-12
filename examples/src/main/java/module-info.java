@@ -18,6 +18,6 @@ module org.chocosolver.examples {
     requires org.chocosolver.parsers;
     requires args4j;
     requires java.desktop;
-    requires trove4j;
+    requires it.unimi.dsi.fastutil;
     opens org.chocosolver.examples.integer to args4j;
 }
