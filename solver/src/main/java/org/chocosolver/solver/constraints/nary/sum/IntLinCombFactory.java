@@ -110,6 +110,7 @@ public class IntLinCombFactory {
         // 1. reduce coefficients and variables
         // a. first loop to detect constant and merge duplicate variable/coefficient
         Int2IntMap map = new Int2IntOpenHashMap();
+        map.defaultReturnValue(-1);
         for (int i = 0; i < NVARS.length; i++) {
             if (VariableUtils.isConstant(NVARS[i])) {
                 RESULT -= (long)NVARS[i].getValue() * NCOEFFS[i]; // potential overflow

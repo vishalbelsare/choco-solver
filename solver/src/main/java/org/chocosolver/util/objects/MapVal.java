@@ -28,7 +28,9 @@ public class MapVal implements IVal {
     public MapVal(int os) {
         this.os = os;
         this.Av = new Int2DoubleOpenHashMap();
+        this.Av.defaultReturnValue(0);
         this.mAv = new Int2DoubleOpenHashMap();
+        this.mAv.defaultReturnValue(0);
     }
 
     @Override

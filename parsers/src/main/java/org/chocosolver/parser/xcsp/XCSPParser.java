@@ -957,6 +957,7 @@ public class XCSPParser implements XCallbacks2 {
     public void buildCtrRegular(String id, XVariables.XVarInteger[] list, Object[][] transitions, String startState, String[] finalStates) {
         FiniteAutomaton auto = new FiniteAutomaton();
         Object2IntMap<String> s2s = new Object2IntOpenHashMap<>();
+        s2s.defaultReturnValue(-1);
         for (Object[] tr : transitions) {
             int f = s2s.getInt(tr[0]);
             int v = ((Long)tr[1]).intValue();

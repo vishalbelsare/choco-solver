@@ -153,7 +153,7 @@ public interface IIntConstraintFactory extends ISelf<Model> {
                 list.add(v);
             }
         }
-        return member(X, list.elements());
+        return member(X, list.toIntArray());
     }
 
     /**

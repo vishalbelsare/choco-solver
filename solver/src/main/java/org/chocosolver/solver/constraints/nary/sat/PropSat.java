@@ -121,7 +121,7 @@ public class PropSat extends Propagator<BoolVar> {
                 val = vars[var].getValue();
                 if (val == (sign ? 0 : 1)) {
                     IntArrayList lits = sat_.implies_.get(k);
-                    for (int l : lits.elements()) {
+                    for (int l : lits) {
                         sign = sign(l);
                         var = var(l);
                         val = vars[var].getValue();

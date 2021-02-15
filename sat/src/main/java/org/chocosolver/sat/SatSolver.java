@@ -136,7 +136,7 @@ public class SatSolver implements SatFactory {
                 i1.add(l0);
                 break;
             default:
-                Clause cr = new Clause(ps.elements());
+                Clause cr = new Clause(ps.toIntArray());
                 clauses.add(cr);
                 attachClause(cr);
                 break;

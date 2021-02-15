@@ -36,6 +36,11 @@ public class Solution implements ICause {
     // VARIABLES
     //***********************************************************************************
 
+    /**
+      * No entry value for maps
+      */
+     private static final int NO_ENTRY = Integer.MAX_VALUE;
+
     // SOLUTION
     /**
      * Set to <tt>true</tt> when this object is empty
@@ -117,6 +122,7 @@ public class Solution implements ICause {
                         case Variable.BOOL:
                             if (intmap == null) {
                                 intmap = new Int2IntOpenHashMap();
+                                intmap.defaultReturnValue(NO_ENTRY);
                             }
                             IntVar v = (IntVar) var;
                             intmap.put(v.getId(), v.getValue());
@@ -194,6 +200,7 @@ public class Solution implements ICause {
         ret.empty = empty;
         if (intmap != null) {
             ret.intmap = new Int2IntOpenHashMap(intmap);
+            ret.intmap.defaultReturnValue(NO_ENTRY);
         }
         if (realmap != null) {
             ret.realmap = new Int2ObjectOpenHashMap<>(realmap);
@@ -241,6 +248,7 @@ public class Solution implements ICause {
         empty = false;
         if (intmap == null) {
             intmap = new Int2IntOpenHashMap();
+            intmap.defaultReturnValue(NO_ENTRY);
         }
         intmap.put(var.getId(), val);
     }

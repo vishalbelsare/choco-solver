@@ -47,6 +47,8 @@ public class FiniteAutomaton implements IAutomaton {
     private final static Int2IntMap intFromCharMap = new Int2IntOpenHashMap();
 
     static {
+        charFromIntMap.defaultReturnValue(-1);
+        intFromCharMap.defaultReturnValue(-1);
         int delta = 0;
         for (int i = Character.MIN_VALUE; i <= Character.MAX_VALUE; i++) {
             while ((char) (i + delta) == '"' || (char) (i + delta) == '{' || (char) (i + delta) == '}' || (char) (i + delta) == '<' ||

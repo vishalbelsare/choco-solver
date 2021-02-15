@@ -407,6 +407,7 @@ public class PropNogoods extends Propagator<Variable> {
         }
         if ((map = vv2lit[vid]) == null) {
             map = new Long2IntOpenHashMap();
+            map.defaultReturnValue(NO_ENTRY);
             vv2lit[vid] = map;
         }
 
@@ -476,6 +477,7 @@ public class PropNogoods extends Propagator<Variable> {
         }
         if ((map = vv2lit[vid]) == null) {
             map = new Long2IntOpenHashMap();
+            map.defaultReturnValue(NO_ENTRY);
             vv2lit[vid] = map;
         }
 

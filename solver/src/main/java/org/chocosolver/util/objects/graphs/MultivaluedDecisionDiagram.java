@@ -174,6 +174,7 @@ public class MultivaluedDecisionDiagram  {
         _pos = new int[nbLayers];
 
         _nodesToRemove = new Int2IntOpenHashMap();
+        _nodesToRemove.defaultReturnValue(-1);
         _identicalNodes = new ArrayList[nbLayers][];
         _nodeId = new IntArrayList[nbLayers][];
 
@@ -246,6 +247,7 @@ public class MultivaluedDecisionDiagram  {
             return d;
         });
         _nodesToRemove = new Int2IntOpenHashMap();
+        _nodesToRemove.defaultReturnValue(-1);
         _identicalNodes = new ArrayList[nbLayers][];
         _nodeId = new IntArrayList[nbLayers][];
 
