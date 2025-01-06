@@ -3,33 +3,214 @@ Choco Solver ChangeLog
 
 This file is dedicated to sum up the new features added and bugs fixed in Choco-solver since the version, 4.0.0.
 **Note**: double-space is replaced by "\t" character on release process. Make sure the format is ok.
-    
-NEXT MILESTONE
+
+4.10.17 - 23 Sep 2024
+-------------------
+
+### Hotfix
+- Fix bug in `PropHybridTable` (#1102)
+
+**Full Changelog**: https://github.com/chocoteam/choco-solver/compare/v4.10.16...v4.10.17
+
+4.10.16 - 12 Sep 2024
+-------------------
+
+### Hotfix
+- Fix bug in `IntAffineView` (#1101)
+
+**Full Changelog**: https://github.com/chocoteam/choco-solver/compare/v4.10.15...v4.10.16
+
+4.10.15 - 09 Sep 2024
 -------------------
 
 ### Major features:
+
+- Add `PickOnDom` and variants (see `Search.pickOnDom`)       
+- Enhance MiniZinc output
+- Revamp scripts to solver flatzinc files
+- Fix bugs (see closed issues)
+
+### Deprecated API (to be removed in next release):
+
+### Other closed issues and pull requests:
+See [milestone 4.10.15](https://github.com/chocoteam/choco-solver/milestone/39)
+
+#### Contributors to this release:
+- [Arthur Godet](https://github.com/ArthurGodet) (@ArthurGodet) 
+- [Paul King](https://github.com/paulk-asert) (@paulk-asert)
+- [Zhang Yang](https://github.com/zy-nesime) (@zy-nesime)
+- [Charles Prud'homme](https://github.com/cprudhom) (@cprudhom)
+                                                                         
+
+**Full Changelog**: https://github.com/chocoteam/choco-solver/compare/v4.10.14...v4.10.15
+
+4.10.14 - 02 Nov 2023
+---------------------
+
+### Major features:
+- NEW: `solver..showRestarts();` to display the number of restarts during the search. 
+- NEW: hybrid table constraints (see `model.table(...)`)
+- NEW: partial assignement generator for COP (see `Search.generatePartialAssignment()`)
+- NEW: Add Blackbox configuration (#1058)
+- Revamp views (#564)
+- Improve `pow(base, exponent, result)`
+- Remove `BitsetArrayIntVarImpl` now managed in `BitSetIntVarImpl`
+
+### Deprecated API (to be removed in next release):
+
+### Other closed issues and pull requests:
+See [milestone 4.10.14](https://github.com/chocoteam/choco-solver/milestone/38)
+
+#### Contributors to this release:
+- [Jean-Guillaume Fages](https://github.com/jgFages) (@jgFages)
+- [Arthur Godet](https://github.com/ArthurGodet) (@ArthurGodet) 
+- [Fabien Hermenier](https://github.com/fhermeni) (@fhermeni)
+- [Charles Prud'homme](https://github.com/cprudhom) (@cprudhom)
+
+**Full Changelog**: https://github.com/chocoteam/choco-solver/compare/v4.10.13...v4.10.14
+    
+4.10.13 - 05 Jun 2023
+---------------------
+
+### Major features: 
+Mainly bug fixes and improvements of Pareto front performances.
+
+### Deprecated API (to be removed in next release):
+
+### Other closed issues and pull requests:
+See [milestone 4.10.13](https://github.com/chocoteam/choco-solver/milestone/xx)
+
+#### Contributors to this release:
+- [Charles Prud'homme](https://github.com/cprudhom) (@cprudhom)
+- [Jani Simomaa](https://github.com/jsimomaa) (@jsimomaa)
+    
+4.10.12 - 06 Mar 2023
+-------------------
+
+### Major features:
+- Fix bug #1006, #1011 and #1014
+
+### Deprecated API (to be removed in next release):
+
+### Other closed issues and pull requests:
+See [milestone 4.10.12](https://github.com/chocoteam/choco-solver/milestone/xx)
+
+#### Contributors to this release:
+- [Dimitri Justeau-Allaire](https://github.com/dimitri-justeau) (@dimitri-justeau)
+- [Charles Prud'homme](https://github.com/cprudhom) (@cprudhom)
+    
+4.10.11 - 07 Feb 2023
+---------------------
+
+### Major features:
+- Correcting the lack of filtering in `PropIncreasing`
+- Change the SetType for the undirected graph stored in DiffN for efficiency reason
+- `SparseBitSet` for a backtrackable bitset with mostly 0s (#935)
+- Change the way restarting works: not a `Move` anymore, directly included in `Solver` (#950)
+- Simplification of objective manager (#949)
+- Calling `getValue()` on an uninstantiated variable throws an IllegalStateException (#957)
+- Change the MiniZinc complementary search to a FirstFail (instead of DomOverWDeg) (#958)
+- Reduce object creation during solving (#985)
+- Reduce object creation during propagation (#969)
+- Reduce memory footprint of `Model` (#964)
+- Add `model.getEstimatedMemory()` method
+- Add `Model` analysis (#939)
+- Add log file as RegParser option (for parsers)
+- creation of PropPower propagators with exponent as int
+
+### Deprecated API (to be removed in next release):
+From `Solver`:
+- `Propagate getPropagate()`
+- `void setPropagate(Propagate p)`
+- `Closeable outputSearchTreeToCPProfiler(boolean domain)`
+
+Others:
+- `Propagate` class
+- `IntEventType`: `int combine(IntEventType... evts)`
+
+### Other closed issues and pull requests:
+See [milestone 4.10.11](https://github.com/chocoteam/choco-solver/milestone/xx)
+
+#### Contributors to this release:
+- [Jean-Guillaume Fages](https://github.com/jgFages) (@jgFages)
+- [Arthur Godet](https://github.com/ArthurGodet) (@ArthurGodet) 
+- [Fabien Hermenier](https://github.com/fhermeni) (@fhermeni)
+- [Charles Prud'homme](https://github.com/cprudhom) (@cprudhom)
+        
+4.10.10 - 11 Oct 2022
+---------------------
+
+### Major features:
+- Fix performance issue of ViewDeltaMonitor
+- Fix lack of filtering in STR2+ when domain is bounded
+- Fix issue relative to `OR` and `AND` in `LogOp`
+- Add missing checks in OneWordS32BitSet and OneWordS64BitSet + update constructors
+- Add new API to VariableUtils
+- Add CITATION.cff
+- Update paper.md
+
+### Deprecated API (to be removed in next release):
+
+### Other closed issues and pull requests:
+See [milestone 4.10.10](https://github.com/chocoteam/choco-solver/milestone/xx)
+
+#### Contributors to this release:
+- [Jean-Guillaume Fages](https://github.com/jgFages) (@jgFages)
+- [Charles Prud'homme](https://github.com/cprudhom) (@cprudhom)
+- [Mehmet Hakan Satman](https://github.com/jbytecode) (@jbytecode)
+      
+4.10.9 - 22 Aug 2022
+--------------------
+
+### Major features:
+- It is now possible to declare hints to help the search finding a first solution. See `solver.addHint(var, val)`.
 - Add `Solver.tableSampling` resolution policy which returns a stream of `Solution` randomly sampled.
-- Extend some black-box strategies to `SetVar` and `GraphVar`
-- Add `union(SetVar unionSet, SetVar indices, SetVar[] sets)` constraint
 - Add `increasing` and `decreasing` constraints
 - Add `costFlow` constraint, which is composed of scalar products and a MinCostMaxFlow propagator
 - Revamp `pow` constraint
-- Increase interval for MiniZinc unbounded intvar
-- Add threshold for Element with array of variables signature
+- Add threshold for `element` with array of variables signature
 - Add a propagator for 0/1-knapsack (thanks to @PoltyPoltou)
 - Remove `CPProfiler` since the project is not active anymore.
 - Make possible to deal with large domains for some constraints (#894)
+- Add a `LinearProgram` class to deal with linear program (!) and a two-phase Simplex (not connected yet)
+- Fix bug related to delta in boolean views
+- Improvements relative to reified propagators
+- Change signature of AtLeastNValues
+- Record time to best in `Measures(IMeasures measures)` constructor
+ 
+####  Change the way propagators are stored in variables to ease swapping (#889)
+Each variable is in charge of scheduling its propagators. 
+This impacts the way propagators are stored in a variable. 
+Consequently, the `getPropagators()` and `getPropagator(int)` methods are deprecated, `streamPropagators()` replaces them. 
+Unless otherwise stated, a propagator that can be entailed is automatically swapped in its variables' internal structure.
+
+#### SetVar
+- Extend some black-box strategies to `SetVar`
+- Add `union(SetVar unionSet, SetVar indices, SetVar[] sets)` constraint
+- Add free strategy for SetVar (RegParser and ParallelPortfolio)
+- Fix `SetVar#getDomainSize`
+- Add `SetDomainMax`
+- Add 'setLe' and 'setLt' constraint (as a decomposition) in `ISetConstraintFactory`
+
+#### Flatzinc, XCSP3 and MPS
+- Change default search of Flatzinc
+- Increase interval for Flatzinc unbounded intvar
+- Remove default ANSI in parsers
+- Update FZN grammar to deal with 'set of int'
+- Flatzinc: deal with warm_start
+- Add ignored search annotation warning in FGoal
+- Update XCSPParser + add `model.amongDec`
 
 ### JAR Files
-Since 4.10.9, two new jar files are available for download. 
-These are lighter versions of those with dependencies, 
-namely `choco-solver-light-VERSION.jar` and `choco-parsers-light-VERSION.jar`.
-The following dependency have been excluded from this archive:
+Since 4.10.9, a new jar file is available for download. 
+This is a lighter version of the one with dependencies, 
+namely `choco-parsers-light-VERSION.jar`.
+The following dependencies have been excluded from this archive:
 - `org.apache.pdfbox:pdfbox`
 - `org.apache.fontbox:fontbox`
 - `com.ibm.icu:icu4j`
 
-This results in 57% and 82% smaller archives respectively.
+This results in 82% smaller archive.
 Note that the non-alleged versions are still available for download.
 
 ### Deprecated API (to be removed in next release):
@@ -41,10 +222,12 @@ See [milestone 4.10.9](https://github.com/chocoteam/choco-solver/milestone/xx)
 #### Contributors to this release:
 - [Mathieu Vavrille](https://github.com/MathieuVavrille) (@MathieuVavrille)
 - [Nicolas Pierre](https://github.com/PoltyPoltou) (@PoltyPoltou)
-- [Charles Prud'homme](https://github.com/cprudhom) (@cprudhom) 
+- [Charles Prud'homme](https://github.com/cprudhom) (@cprudhom)
+- [Jean-Guillaume Fages](https://github.com/jgFages) (@jgFages)
+- [Arthur Godet](https://github.com/ArthurGodet) (@ArthurGodet)
     
 4.10.8 - 07 Jan 2022
--------------------
+--------------------
 
 ### Major features:
 - Propagation is now observable, `solver.observePropagation(PropagationObserver)`. 
@@ -68,7 +251,7 @@ See [milestone 4.10.8](https://github.com/chocoteam/choco-solver/milestone/xx)
 - [Charles Prud'homme](https://github.com/cprudhom) (@cprudhom)
 
 4.10.7 - 11 Oct 2021
--------------------
+--------------------
 
 ### Major features:
 - Simplify the way deltamonitors work. There is no need to `freeze` and `unfreeze` 
@@ -109,7 +292,7 @@ See [milestone 4.10.7](https://github.com/chocoteam/choco-solver/milestone/xx)
 - [Charles Vernerey](https://github.com/ChaVer) (@chaver)
 
 4.10.6 - 11 Dec 2020
--------------------             
+--------------------             
 
 ### Major features:
 - Add new resolution helper in `Solver`, namely `findOptimalSolutionWithBounds`. See Javadoc for details and usages.

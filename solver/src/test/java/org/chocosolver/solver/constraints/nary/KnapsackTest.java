@@ -1,7 +1,7 @@
 /*
  * This file is part of choco-solver, http://choco-solver.org/
  *
- * Copyright (c) 2022, IMT Atlantique. All rights reserved.
+ * Copyright (c) 2024, IMT Atlantique. All rights reserved.
  *
  * Licensed under the BSD 4-clause license.
  *
@@ -54,7 +54,7 @@ public class KnapsackTest {
         }
         Solver s = m.getSolver();
         IntVar[] xCost = new IntVar[N];
-        for (int i = 0; i < N; i++) xCost[i] = m.intScaleView(x[i], c[i]);
+        for (int i = 0; i < N; i++) xCost[i] = m.mul(x[i], c[i]);
         s.setSearch(Search.intVarSearch(new Largest(), new IntDomainMax(), xCost));
         while (s.solve()) ;
         s.printShortStatistics();
@@ -77,7 +77,7 @@ public class KnapsackTest {
         }
         Solver s = m.getSolver();
         IntVar[] xCost = new IntVar[N];
-        for (int i = 0; i < N; i++) xCost[i] = m.intScaleView(x[i], c[i]);
+        for (int i = 0; i < N; i++) xCost[i] = m.mul(x[i], c[i]);
         s.setSearch(Search.intVarSearch(new Largest(), new IntDomainBest(), xCost));
         while (s.solve()) ;
         s.printShortStatistics();

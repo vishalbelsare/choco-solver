@@ -1,7 +1,7 @@
 /*
  * This file is part of choco-parsers, http://choco-solver.org/
  *
- * Copyright (c) 2022, IMT Atlantique. All rights reserved.
+ * Copyright (c) 2024, IMT Atlantique. All rights reserved.
  *
  * Licensed under the BSD 4-clause license.
  *
@@ -10,7 +10,6 @@
 package org.chocosolver.parser.flatzinc.ast;
 
 import gnu.trove.list.array.TIntArrayList;
-import gnu.trove.set.hash.TIntHashSet;
 import org.chocosolver.parser.flatzinc.ast.expression.EAnnotation;
 import org.chocosolver.parser.flatzinc.ast.expression.ESetBounds;
 import org.chocosolver.parser.flatzinc.ast.expression.Expression;
@@ -19,7 +18,6 @@ import org.chocosolver.solver.Model;
 import org.chocosolver.solver.constraints.Constraint;
 import org.chocosolver.solver.constraints.extension.Tuples;
 import org.chocosolver.solver.constraints.nary.automata.FA.FiniteAutomaton;
-import org.chocosolver.solver.constraints.nary.cnf.LogOp;
 import org.chocosolver.solver.expression.discrete.logical.LoExpression;
 import org.chocosolver.solver.expression.discrete.logical.NaLoExpression;
 import org.chocosolver.solver.variables.*;
@@ -409,7 +407,7 @@ public enum FConstraint {
             IntVar c = exps.get(2).intVarValue(model);
             BoolVar r = exps.get(3).boolVarValue(model);
 
-            if ((boolean) model.getSettings().get("adhocReification")) {
+            if ((boolean) model.getSettings().get("adhocReification").orElse(false)) {
                 if (bs.length == 1) {
                     if (bs[0].isInstantiated() || c.isInstantiated()) {
                         IntVar x;
@@ -505,6 +503,12 @@ public enum FConstraint {
                 }
             }
             model.scalar(bs, as, "<=", c).reifyWith(r);
+            // slower version:
+            /* int[] bnds = VariableUtils.boundsForScalar(bs, as);
+            IntVar e = model.intVar(bnds[0], bnds[1]);
+            model.scalar(bs, as, "=", e).post();
+            model.reifyXleY(e, c, r);
+            */
         }
     },
     int_lin_ne {
@@ -643,7 +647,7 @@ public enum FConstraint {
             if ((a.getTypeAndKind() & Variable.KIND) == Variable.BOOL && ((b.getTypeAndKind() & Variable.KIND) == Variable.BOOL)) {
                 model.addClausesBoolIsNeqVar((BoolVar) a, (BoolVar) b, r);
             } else {
-                if ((boolean) model.getSettings().get("adhocReification")) {
+                if ((boolean) model.getSettings().get("adhocReification").orElse(false)) {
                     if (a.isInstantiated() || b.isInstantiated()) {
                         IntVar x;
                         int c;
@@ -707,12 +711,16 @@ public enum FConstraint {
     fzn_all_different_int {
         @Override
         public void build(Model model, Datas datas, String id, List<Expression> exps, List<EAnnotation> annotations) {
-            boolean AC = annotations.stream().anyMatch(a -> a.id.toString().equals("domain"));
             IntVar[] vars = exps.get(0).toIntVarArray(model);
             if (vars.length > 1) {
-                model.allDifferent(vars, AC ? "AC" : "").post();
+                if (annotations.stream().anyMatch(a -> a.id.toString().equals("domain"))) {
+                    model.allDifferent(vars, "AC").post();
+                } else if (annotations.stream().anyMatch(a -> a.id.toString().startsWith("bounds"))) {
+                    model.allDifferent(vars, "BC").post();
+                } else {
+                    model.allDifferent(vars).post();
+                }
             }
-
         }
     },
     alldifferentBut0Choco {
@@ -746,8 +754,8 @@ public enum FConstraint {
         public void build(Model model, Datas datas, String id, List<Expression> exps, List<EAnnotation> annotations) {
             IntVar[] vars = exps.get(0).toIntVarArray(model);
             BoolVar b = exps.get(1).boolVarValue(model);
-            IntVar count = model.intVar(0, vars.length);
-            model.atMostNValues(vars, count, false).post();
+            IntVar count = model.intVar(1, vars.length);
+            model.nValues(vars, count).post();
             model.reifyXeqC(count, 1, b);
         }
     },
@@ -938,6 +946,89 @@ public enum FConstraint {
 
         }
     },
+    fzn_count_geq {
+        @Override
+        public void build(Model model, Datas datas, String id, List<Expression> exps, List<EAnnotation> annotations) {
+
+            IntVar[] x = exps.get(0).toIntVarArray(model);
+            IntVar y = exps.get(1).intVarValue(model);
+            IntVar c = exps.get(2).intVarValue(model);
+            IntVar c2;
+            if (c.isAConstant()) {
+                c2 = model.intVar(c.getName() + "_2", 0, c.getValue());
+            } else {
+                c2 = model.intVar(c.getName() + "_2", 0, x.length);
+                model.arithm(c, ">=", c2).post();
+            }
+            model.count(y, x, c2).post();
+        }
+    },
+    fzn_count_gt {
+        @Override
+        public void build(Model model, Datas datas, String id, List<Expression> exps, List<EAnnotation> annotations) {
+
+            IntVar[] x = exps.get(0).toIntVarArray(model);
+            IntVar y = exps.get(1).intVarValue(model);
+            IntVar c = exps.get(2).intVarValue(model);
+            IntVar c2;
+            if (c.isAConstant()) {
+                c2 = model.intVar(c.getName() + "_2", 0, c.getValue() - 1);
+            } else {
+                c2 = model.intVar(c.getName() + "_2", 0, x.length);
+                model.arithm(c, ">", c2).post();
+            }
+            model.count(y, x, c2).post();
+
+        }
+    },
+    fzn_count_leq {
+        @Override
+        public void build(Model model, Datas datas, String id, List<Expression> exps, List<EAnnotation> annotations) {
+
+            IntVar[] x = exps.get(0).toIntVarArray(model);
+            IntVar y = exps.get(1).intVarValue(model);
+            IntVar c = exps.get(2).intVarValue(model);
+            IntVar c2;
+            if (c.isAConstant()) {
+                c2 = model.intVar(c.getName() + "_2", c.getValue(), x.length);
+            } else {
+                c2 = model.intVar(c.getName() + "_2", 0, x.length);
+                model.arithm(c, "<=", c2).post();
+            }
+            model.count(y, x, c2).post();
+        }
+    },
+    fzn_count_lt {
+        @Override
+        public void build(Model model, Datas datas, String id, List<Expression> exps, List<EAnnotation> annotations) {
+
+            IntVar[] x = exps.get(0).toIntVarArray(model);
+            IntVar y = exps.get(1).intVarValue(model);
+            IntVar c = exps.get(2).intVarValue(model);
+            IntVar c2;
+            if (c.isAConstant()) {
+                c2 = model.intVar(c.getName() + "_2", c.getValue() + 1, x.length);
+            } else {
+                c2 = model.intVar(c.getName() + "_2", 0, x.length);
+                model.arithm(c, "<", c2).post();
+            }
+            model.count(y, x, c2).post();
+
+        }
+    },
+    fzn_count_neq {
+        @Override
+        public void build(Model model, Datas datas, String id, List<Expression> exps, List<EAnnotation> annotations) {
+
+            IntVar[] x = exps.get(0).toIntVarArray(model);
+            IntVar y = exps.get(1).intVarValue(model);
+            IntVar c = exps.get(2).intVarValue(model);
+            IntVar c2 = model.intVar(c.getName() + "_2", 0, x.length);
+            model.count(y, x, c2).post();
+            model.arithm(c2, "!=", c).post();
+
+        }
+    },
     cumulativeChoco {
         @Override
         public void build(Model model, Datas datas, String id, List<Expression> exps, List<EAnnotation> annotations) {
@@ -1052,6 +1143,36 @@ public enum FConstraint {
                                 -resources[i].getValue() + limit.getValue()).post();
                     }
                     break;
+            }
+        }
+    },
+    fzn_disjunctive {
+        @Override
+        public void build(Model model, Datas datas, String id, List<Expression> exps, List<EAnnotation> annotations) {
+            IntVar[] s = exps.get(0).toIntVarArray(model);
+            IntVar[] d = exps.get(1).toIntVarArray(model);
+            Task[] t = new Task[s.length];
+            IntVar[] h = new IntVar[s.length];
+            for (int i = 0; i < s.length; i++) {
+                t[i] = model.taskVar(s[i], d[i]);
+                h[i] = model.intVar(1);
+            }
+            model.cumulative(t, h, model.intVar(1)).post();
+        }
+    },
+    fzn_disjunctive_strict {
+        @Override
+        public void build(Model model, Datas datas, String id, List<Expression> exps, List<EAnnotation> annotations) {
+            IntVar[] s = exps.get(0).toIntVarArray(model);
+            IntVar[] d = exps.get(1).toIntVarArray(model);
+            for (int i = 0; i < s.length; i++) {
+                for (int j = i + 1; j < s.length; j++) {
+                    BoolVar b = model.boolVar();
+                    model.scalar(new IntVar[]{s[i], d[i], s[j], b},
+                            new int[]{1, 1, -1, -(s[i].getUB() + d[i].getUB())}, "<=", 0).post();
+                    model.scalar(new IntVar[]{s[j], d[j], s[i], b.not()},
+                            new int[]{1, 1, -1, -(s[j].getUB() + d[j].getUB())}, "<=", 0).post();
+                }
             }
         }
     },
@@ -1177,9 +1298,20 @@ public enum FConstraint {
         @Override
         public void build(Model model, Datas datas, String id, List<Expression> exps, List<EAnnotation> annotations) {
             boolean AC = annotations.stream().anyMatch(a -> a.id.toString().equals("domain"));
-            IntVar[] x = exps.get(0).toIntVarArray(model);
-            IntVar[] y = exps.get(1).toIntVarArray(model);
-            model.inverseChanneling(x, y, 1, 1, AC).post();
+            IntVar[] x;
+            int ox = 1;
+            IntVar[] y;
+            int oy = 1;
+            if (exps.size() == 2) {
+                x = exps.get(0).toIntVarArray(model);
+                y = exps.get(1).toIntVarArray(model);
+            } else {
+                x = exps.get(0).toIntVarArray(model);
+                ox = exps.get(1).intValue();
+                y = exps.get(2).toIntVarArray(model);
+                oy = exps.get(3).intValue();
+            }
+            model.inverseChanneling(x, y, ox, oy, AC).post();
 
         }
     },
@@ -1269,10 +1401,17 @@ public enum FConstraint {
     memberChoco {
         @Override
         public void build(Model model, Datas datas, String id, List<Expression> exps, List<EAnnotation> annotations) {
-            fzn_member_int.build(model, datas, id, exps, annotations);
+            choco_member_int.build(model, datas, id, exps, annotations);
         }
     },
-    fzn_member_int {
+    fzn_member_int {  // legacy
+
+        @Override
+        public void build(Model model, Datas datas, String id, List<Expression> exps, List<EAnnotation> annotations) {
+            choco_member_int.build(model, datas, id, exps, annotations);
+        }
+    },
+    choco_member_int {
         @Override
         public void build(Model model, Datas datas, String id, List<Expression> exps, List<EAnnotation> annotations) {
 
@@ -1285,10 +1424,17 @@ public enum FConstraint {
     memberVarChoco {
         @Override
         public void build(Model model, Datas datas, String id, List<Expression> exps, List<EAnnotation> annotations) {
-            fzn_member_int_var.build(model, datas, id, exps, annotations);
+            choco_member_int_var.build(model, datas, id, exps, annotations);
         }
     },
-    fzn_member_int_var {
+    fzn_member_int_var { // legacy
+
+        @Override
+        public void build(Model model, Datas datas, String id, List<Expression> exps, List<EAnnotation> annotations) {
+            choco_member_int_var.build(model, datas, id, exps, annotations);
+        }
+    },
+    choco_member_int_var {
         @Override
         public void build(Model model, Datas datas, String id, List<Expression> exps, List<EAnnotation> annotations) {
 
@@ -1301,10 +1447,17 @@ public enum FConstraint {
     memberReifChoco {
         @Override
         public void build(Model model, Datas datas, String id, List<Expression> exps, List<EAnnotation> annotations) {
-            fzn_member_int_reif.build(model, datas, id, exps, annotations);
+            choco_member_int_reif.build(model, datas, id, exps, annotations);
         }
     },
-    fzn_member_int_reif {
+    fzn_member_int_reif {  // legacy
+
+        @Override
+        public void build(Model model, Datas datas, String id, List<Expression> exps, List<EAnnotation> annotations) {
+            choco_member_int_reif.build(model, datas, id, exps, annotations);
+        }
+    },
+    choco_member_int_reif {
         @Override
         public void build(Model model, Datas datas, String id, List<Expression> exps, List<EAnnotation> annotations) {
 
@@ -1318,10 +1471,17 @@ public enum FConstraint {
     memberVarReifChoco {
         @Override
         public void build(Model model, Datas datas, String id, List<Expression> exps, List<EAnnotation> annotations) {
-            fzn_member_int_var_reif.build(model, datas, id, exps, annotations);
+            choco_member_int_var_reif.build(model, datas, id, exps, annotations);
         }
     },
-    fzn_member_int_var_reif {
+    fzn_member_int_var_reif {  // legacy
+
+        @Override
+        public void build(Model model, Datas datas, String id, List<Expression> exps, List<EAnnotation> annotations) {
+            choco_member_int_var_reif.build(model, datas, id, exps, annotations);
+        }
+    },
+    choco_member_int_var_reif {
         @Override
         public void build(Model model, Datas datas, String id, List<Expression> exps, List<EAnnotation> annotations) {
             IntVar[] xs = exps.get(0).toIntVarArray(model);
@@ -1334,7 +1494,7 @@ public enum FConstraint {
                     eqs.add(model.arithm(x, "=", y).reify());
                 }
             }
-            if (eqs.size() == 0) {
+            if (eqs.isEmpty()) {
                 model.arithm(b, "=", 0).post();
             } else {
                 model.addClausesBoolOrArrayEqVar(eqs.toArray(new BoolVar[0]), b);
@@ -1465,6 +1625,21 @@ public enum FConstraint {
 
         }
     },
+    choco_stable_keysort {
+        @Override
+        public void build(Model model, Datas datas, String id, List<Expression> exps, List<EAnnotation> annotations) {
+
+            IntVar[] x = exps.get(0).toIntVarArray(model);
+            IntVar[] permutations = exps.get(1).toIntVarArray(model);
+            IntVar[] y = exps.get(2).toIntVarArray(model);
+            int keys = exps.get(3).intValue();
+
+            IntVar[][] unsorted = matrixfy(x, x.length / permutations.length);
+            IntVar[][] sorted = matrixfy(y, y.length / permutations.length);
+
+            model.keySort(unsorted, permutations, sorted, keys).post();
+        }
+    },
     subcircuitChoco {
         @Override
         public void build(Model model, Datas datas, String id, List<Expression> exps, List<EAnnotation> annotations) {
@@ -1501,11 +1676,7 @@ public enum FConstraint {
             IntVar[] x = exps.get(0).toIntVarArray(model);
             int[] f_t = exps.get(1).toIntArray();
             int d2 = x.length;
-            int d1 = f_t.length / d2;
-            List<int[]> t = new ArrayList<>();
-            for (int i = 0; i < d1; i++) {
-                t.add(Arrays.copyOfRange(f_t, i * d2, (i + 1) * d2));
-            }
+            int[][] t = matrixfy(f_t, d2);
             Tuples tuples = new Tuples(true);
             for (int[] couple : t) {
                 tuples.add(couple);
@@ -1557,18 +1728,10 @@ public enum FConstraint {
             IntVar valVar = exps.get(1).intVarValue(model);
             IntVar countVar = exps.get(2).intVarValue(model);
             BoolVar b = exps.get(3).boolVarValue(model);
-            Constraint cstr;
-            if (valVar.isInstantiated()) {
-                IntVar nbOcc = model.intVar(model.generateName(), 0, decVars.length, true);
-                cstr = model.count(valVar.getValue(), decVars, nbOcc);
-                model.reifyXeqY(nbOcc, countVar, b);
-            } else {
-                IntVar value = model.intVar(model.generateName(), valVar.getLB(), valVar.getUB());
-                cstr = model.count(value, decVars, countVar);
-                model.reifyXeqY(value, valVar, b);
-            }
+            IntVar nbOcc = model.intVar(model.generateName(), 0, decVars.length);
+            Constraint cstr = model.count(valVar, decVars, nbOcc);
+            model.reifyXeqY(nbOcc, countVar, b);
             cstr.post();
-
         }
     },
     fzn_count_geq_reif {
@@ -1579,16 +1742,9 @@ public enum FConstraint {
             IntVar valVar = exps.get(1).intVarValue(model);
             IntVar countVar = exps.get(2).intVarValue(model);
             BoolVar b = exps.get(3).boolVarValue(model);
-            Constraint cstr;
-            if (valVar.isInstantiated()) {
-                IntVar nbOcc = model.intVar(model.generateName(), 0, decVars.length, true);
-                cstr = model.count(valVar.getValue(), decVars, nbOcc);
-                model.reifyXgeY(nbOcc, countVar, b);
-            } else {
-                IntVar value = model.intVar(model.generateName(), valVar.getLB(), valVar.getUB());
-                cstr = model.count(value, decVars, countVar);
-                model.reifyXgeY(value, valVar, b);
-            }
+            IntVar nbOcc = model.intVar(model.generateName(), 0, decVars.length, true);
+            Constraint cstr = model.count(valVar, decVars, nbOcc);
+            model.reifyXgeY(nbOcc, countVar, b);
             cstr.post();
 
         }
@@ -1601,16 +1757,9 @@ public enum FConstraint {
             IntVar valVar = exps.get(1).intVarValue(model);
             IntVar countVar = exps.get(2).intVarValue(model);
             BoolVar b = exps.get(3).boolVarValue(model);
-            Constraint cstr;
-            if (valVar.isInstantiated()) {
-                IntVar nbOcc = model.intVar(model.generateName(), 0, decVars.length, true);
-                cstr = model.count(valVar.getValue(), decVars, nbOcc);
-                model.reifyXgtY(nbOcc, countVar, b);
-            } else {
-                IntVar value = model.intVar(model.generateName(), valVar.getLB(), valVar.getUB());
-                cstr = model.count(value, decVars, countVar);
-                model.reifyXgtY(value, valVar, b);
-            }
+            IntVar nbOcc = model.intVar(model.generateName(), 0, decVars.length, true);
+            Constraint cstr = model.count(valVar, decVars, nbOcc);
+            model.reifyXgtY(nbOcc, countVar, b);
             cstr.post();
 
         }
@@ -1623,16 +1772,9 @@ public enum FConstraint {
             IntVar valVar = exps.get(1).intVarValue(model);
             IntVar countVar = exps.get(2).intVarValue(model);
             BoolVar b = exps.get(3).boolVarValue(model);
-            Constraint cstr;
-            if (valVar.isInstantiated()) {
-                IntVar nbOcc = model.intVar(model.generateName(), 0, decVars.length, true);
-                cstr = model.count(valVar.getValue(), decVars, nbOcc);
-                model.reifyXleY(nbOcc, countVar, b);
-            } else {
-                IntVar value = model.intVar(model.generateName(), valVar.getLB(), valVar.getUB());
-                cstr = model.count(value, decVars, countVar);
-                model.reifyXleY(value, valVar, b);
-            }
+            IntVar nbOcc = model.intVar(model.generateName(), 0, decVars.length, true);
+            Constraint cstr = model.count(valVar, decVars, nbOcc);
+            model.reifyXleY(nbOcc, countVar, b);
             cstr.post();
 
         }
@@ -1645,16 +1787,9 @@ public enum FConstraint {
             IntVar valVar = exps.get(1).intVarValue(model);
             IntVar countVar = exps.get(2).intVarValue(model);
             BoolVar b = exps.get(3).boolVarValue(model);
-            Constraint cstr;
-            if (valVar.isInstantiated()) {
-                IntVar nbOcc = model.intVar(model.generateName(), 0, decVars.length, true);
-                cstr = model.count(valVar.getValue(), decVars, nbOcc);
-                model.reifyXltY(nbOcc, countVar, b);
-            } else {
-                IntVar value = model.intVar(model.generateName(), valVar.getLB(), valVar.getUB());
-                cstr = model.count(value, decVars, countVar);
-                model.reifyXltY(value, valVar, b);
-            }
+            IntVar nbOcc = model.intVar(model.generateName(), 0, decVars.length, true);
+            Constraint cstr = model.count(valVar, decVars, nbOcc);
+            model.reifyXltY(nbOcc, countVar, b);
             cstr.post();
 
         }
@@ -1667,16 +1802,9 @@ public enum FConstraint {
             IntVar valVar = exps.get(1).intVarValue(model);
             IntVar countVar = exps.get(2).intVarValue(model);
             BoolVar b = exps.get(3).boolVarValue(model);
-            Constraint cstr;
-            if (valVar.isInstantiated()) {
-                IntVar nbOcc = model.intVar(model.generateName(), 0, decVars.length, true);
-                cstr = model.count(valVar.getValue(), decVars, nbOcc);
-                model.reifyXneY(nbOcc, countVar, b);
-            } else {
-                IntVar value = model.intVar(model.generateName(), valVar.getLB(), valVar.getUB());
-                cstr = model.count(value, decVars, countVar);
-                model.reifyXneY(value, valVar, b);
-            }
+            IntVar nbOcc = model.intVar(model.generateName(), 0, decVars.length, true);
+            Constraint cstr = model.count(valVar, decVars, nbOcc);
+            model.reifyXneY(nbOcc, countVar, b);
             cstr.post();
 
         }
@@ -1698,6 +1826,21 @@ public enum FConstraint {
             SetVar c = exps.get(2).setVarValue(model);
             model.element(b, as, 1, c).post();
 
+        }
+    },
+    fzn_disjoint {
+        @Override
+        public void build(Model model, Datas datas, String id, List<Expression> exps, List<EAnnotation> annotations) {
+            SetVar a = exps.get(0).setVarValue(model);
+            SetVar b = exps.get(1).setVarValue(model);
+            model.disjoint(a, b).post();
+        }
+    },
+    fzn_all_disjoint {
+        @Override
+        public void build(Model model, Datas datas, String id, List<Expression> exps, List<EAnnotation> annotations) {
+            SetVar[] as = exps.get(0).toSetVarArray(model);
+            model.allDisjoint(as).post();
         }
     },
     set_card {
@@ -1798,33 +1941,7 @@ public enum FConstraint {
 
             SetVar a = exps.get(0).setVarValue(model);
             SetVar b = exps.get(1).setVarValue(model);
-
-            SetVar ab = model.setVar(model.generateName(), a.getLB().toArray(), a.getUB().toArray());
-            SetVar ba = model.setVar(model.generateName(), b.getLB().toArray(), b.getUB().toArray());
-
-            TIntHashSet values = new TIntHashSet();
-            for (int i : a.getUB()) {
-                values.add(i);
-            }
-            for (int i : b.getUB()) {
-                values.add(i);
-            }
-            int[] env = values.toArray();
-            Arrays.sort(env);
-            SetVar c = model.setVar(model.generateName(), new int[]{}, env);
-            IntVar min = model.intVar(model.generateName(), env[0], env[env.length - 1]);
-
-            BoolVar _b1 = model.subsetEq(a, b).reify();
-
-            model.post(model.partition(new SetVar[]{ab, b}, a),
-                    model.partition(new SetVar[]{ba, a}, b),
-                    model.union(new SetVar[]{ab, ba}, c));
-
-            model.min(c, min, false);
-            BoolVar _b2 = model.member(min, a).reify();
-
-            model.addClausesAtMostNMinusOne(new BoolVar[]{_b1, _b2});
-
+            model.setLe(a, b).post();
         }
     },
     set_lt {
@@ -1833,33 +1950,7 @@ public enum FConstraint {
 
             SetVar a = exps.get(0).setVarValue(model);
             SetVar b = exps.get(1).setVarValue(model);
-
-            SetVar ab = model.setVar(model.generateName(), a.getLB().toArray(), a.getUB().toArray());
-            SetVar ba = model.setVar(model.generateName(), b.getLB().toArray(), b.getUB().toArray());
-
-            TIntHashSet values = new TIntHashSet();
-            for (int i : a.getUB()) {
-                values.add(i);
-            }
-            for (int i : b.getUB()) {
-                values.add(i);
-            }
-            int[] env = values.toArray();
-            Arrays.sort(env);
-            SetVar c = model.setVar(model.generateName(), new int[]{}, env);
-            IntVar min = model.intVar(model.generateName(), env[0], env[env.length - 1]);
-
-            BoolVar _b1 = model.subsetEq(a, b).reify();
-            BoolVar _b2 = model.allDifferent(a, b).reify();
-
-            model.post(model.partition(new SetVar[]{ab, b}, a),
-                    model.partition(new SetVar[]{ba, a}, b),
-                    model.union(new SetVar[]{ab, ba}, c));
-            model.min(c, min, false);
-            BoolVar _b3 = model.member(min, a).reify();
-
-            model.addClauses(LogOp.or(_b3, LogOp.and(_b1, _b2)));
-
+            model.setLt(a, b).post();
         }
     },
     set_ne {
@@ -1971,7 +2062,7 @@ public enum FConstraint {
         public void build(Model model, Datas datas, String id, List<Expression> exps, List<EAnnotation> annotations) {
             BoolVar[] x = exps.get(0).toBoolVarArray(model);
             IntVar z = exps.get(1).intVarValue(model);
-            model.argmaxDec(z, 1, x);
+            model.argmax(z, 1, x).post();
         }
     },
     fzn_maximum_arg_int {
@@ -1979,7 +2070,7 @@ public enum FConstraint {
         public void build(Model model, Datas datas, String id, List<Expression> exps, List<EAnnotation> annotations) {
             IntVar[] x = exps.get(0).toIntVarArray(model);
             IntVar z = exps.get(1).intVarValue(model);
-            model.argmaxDec(z, 1, x);
+            model.argmax(z, 1, x).post();
         }
     },
     fzn_minimum_arg_bool {
@@ -1987,7 +2078,7 @@ public enum FConstraint {
         public void build(Model model, Datas datas, String id, List<Expression> exps, List<EAnnotation> annotations) {
             BoolVar[] x = exps.get(0).toBoolVarArray(model);
             IntVar z = exps.get(1).intVarValue(model);
-            model.argminDec(z, 1, x);
+            model.argmin(z, 1, x).post();
         }
     },
     fzn_minimum_arg_int {
@@ -1995,7 +2086,7 @@ public enum FConstraint {
         public void build(Model model, Datas datas, String id, List<Expression> exps, List<EAnnotation> annotations) {
             IntVar[] x = exps.get(0).toIntVarArray(model);
             IntVar z = exps.get(1).intVarValue(model);
-            model.argminDec(z, 1, x);
+            model.argmin(z, 1, x).post();
         }
     },
     // redefinitions.mzn
@@ -2434,4 +2525,23 @@ public enum FConstraint {
 
 
     public abstract void build(Model model, Datas datas, String id, List<Expression> exps, List<EAnnotation> annotations);
+
+    public int[][] matrixfy(int[] es, int d) {
+        int d1 = es.length / d;
+        int[][] t = new int[d1][d];
+        for (int i = 0; i < d1; i++) {
+            t[i] = Arrays.copyOfRange(es, i * d, (i + 1) * d);
+        }
+        return t;
+    }
+
+    public IntVar[][] matrixfy(IntVar[] es, int d) {
+        int d1 = es.length / d;
+        IntVar[][] t = new IntVar[d1][d];
+        for (int i = 0; i < d1; i++) {
+            t[i] = Arrays.copyOfRange(es, i * d, (i + 1) * d);
+        }
+        return t;
+    }
+
 }

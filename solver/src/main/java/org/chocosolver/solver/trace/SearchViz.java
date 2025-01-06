@@ -1,7 +1,7 @@
 /*
  * This file is part of choco-solver, http://choco-solver.org/
  *
- * Copyright (c) 2022, IMT Atlantique. All rights reserved.
+ * Copyright (c) 2024, IMT Atlantique. All rights reserved.
  *
  * Licensed under the BSD 4-clause license.
  *
@@ -136,15 +136,11 @@ public abstract class SearchViz implements IMonitorDownBranch, IMonitorUpBranch,
     public SearchViz(Solver aSolver, boolean sendDomain) {
         this.mSolver = aSolver;
         this.sendDomain = sendDomain;
-        if(connected = connect(mSolver.getModel().getName())) {
-            mSolver.plugMonitor(this);
-        }
+        mSolver.plugMonitor(this);
         alt_stack.push(-1); // -1 is alt for the root node
         pid_stack.push(-1); // -1 is pid for the root node
         last_stack.push(-1);
     }
-
-    protected abstract boolean connect(String label);
 
     protected abstract void disconnect();
 

@@ -1,7 +1,7 @@
 /*
  * This file is part of choco-solver, http://choco-solver.org/
  *
- * Copyright (c) 2022, IMT Atlantique. All rights reserved.
+ * Copyright (c) 2024, IMT Atlantique. All rights reserved.
  *
  * Licensed under the BSD 4-clause license.
  *
@@ -9,32 +9,34 @@
  */
 package org.chocosolver.solver;
 
-import org.chocosolver.cutoffseq.LubyCutoffStrategy;
 import org.chocosolver.solver.constraints.Constraint;
 import org.chocosolver.solver.constraints.nary.sat.NogoodStealer;
 import org.chocosolver.solver.constraints.real.RealConstraint;
 import org.chocosolver.solver.exception.InvalidSolutionException;
 import org.chocosolver.solver.exception.SolverException;
-import org.chocosolver.solver.search.limits.FailCounter;
-import org.chocosolver.solver.search.loop.lns.INeighborFactory;
 import org.chocosolver.solver.search.loop.monitors.IMonitorSolution;
 import org.chocosolver.solver.search.loop.monitors.NogoodFromRestarts;
+import org.chocosolver.solver.search.strategy.BlackBoxConfigurator;
 import org.chocosolver.solver.search.strategy.Search;
+import org.chocosolver.solver.search.strategy.SearchParams;
+import org.chocosolver.solver.search.strategy.selectors.values.IntValueSelector;
+import org.chocosolver.solver.search.strategy.strategy.AbstractStrategy;
 import org.chocosolver.solver.variables.IntVar;
-import org.chocosolver.solver.variables.RealVar;
-import org.chocosolver.solver.variables.SetVar;
 import org.chocosolver.solver.variables.Variable;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Spliterator;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
-
-import static org.chocosolver.solver.search.strategy.Search.*;
 
 /**
  * <p>
@@ -347,6 +349,7 @@ public class ParallelPortfolio {
      * @return a list that contained the found solutions.
      */
     public Stream<Solution> streamSolutions() {
+        //noinspection Convert2Diamond
         Spliterator<Solution> it = new Spliterator<Solution>() {
 
             @Override
@@ -381,7 +384,6 @@ public class ParallelPortfolio {
     ///////////////////////////////////////   INTERNAL METHODS    //////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    @SuppressWarnings("unchecked")
     public void prepare() {
         isPrepared = true;
         check();
@@ -410,168 +412,142 @@ public class ParallelPortfolio {
             if (solverVal == bestVal) {
                 getSolutionFound().set(true);
                 finder = m;
-                if (m.getResolutionPolicy() == ResolutionPolicy.MAXIMIZE) {
-                    models.forEach(s1 -> s1.getSolver().getObjectiveManager().updateBestLB(bestVal));
-                } else {
-                    models.forEach(s1 -> s1.getSolver().getObjectiveManager().updateBestUB(bestVal));
-                }
+                models.forEach(s1 -> s1.getSolver().getObjectiveManager().updateBestSolution(bestVal));
             }
         }
     }
 
     private void configureModel(int workerID) {
         Model worker = getModels().get(workerID);
-        Solver solver = worker.getSolver();
         ResolutionPolicy policy = worker.getResolutionPolicy();
-
-        // compute decision variables
-        Variable[] varsX;
-        if (solver.getSearch() != null && solver.getSearch().getVariables().length > 0) {
-            varsX = solver.getSearch().getVariables();
-        } else {
-            varsX = worker.getVars();
-        }
-        IntVar[] ivars = new IntVar[varsX.length];
-        SetVar[] svars = new SetVar[varsX.length];
-        RealVar[] rvars = new RealVar[varsX.length];
-        int ki = 0, ks = 0, kr = 0;
-        for (Variable aVarsX : varsX) {
-            if ((aVarsX.getTypeAndKind() & Variable.INT) > 0) {
-                ivars[ki++] = (IntVar) aVarsX;
-            } else if ((aVarsX.getTypeAndKind() & Variable.SET) > 0) {
-                svars[ks++] = (SetVar) aVarsX;
-            } else if ((aVarsX.getTypeAndKind() & Variable.REAL) > 0) {
-                rvars[kr++] = (RealVar) aVarsX;
-            } else {
-                throw new UnsupportedOperationException("unrecognized variable kind " + aVarsX);
-            }
-        }
-        ivars = Arrays.copyOf(ivars, ki);
-        svars = Arrays.copyOf(svars, ks);
-        rvars = Arrays.copyOf(rvars, kr);
-
-        // set heuristic
         boolean opt = policy != ResolutionPolicy.SATISFACTION;
+        BlackBoxConfigurator bb = BlackBoxConfigurator.init();
+        // common settings
+        bb.setRestartPolicy(SearchParams.Restart.GEOMETRIC, 10, 1.05, 50_000, true);
+        bb.setNogoodOnRestart(true);
+        bb.setRestartOnSolution(true);
+        bb.setExcludeViews(false);
+        SearchParams.ValSelConf intValConf;
+        Function<Model, IntValueSelector> intValSel;
+        SearchParams.VarSelConf intVarConf;
+        BiFunction<IntVar[], IntValueSelector, AbstractStrategy<IntVar>> intVarSel;
         switch (workerID) {
             case 0:
-                // DWD  + fast restart + LC (+ B2V)
-                solver.setSearch(
-                        lastConflict(
-                                VarH.DOMWDEG.make(solver, ivars, ValH.BEST, Integer.MAX_VALUE, opt)
-                        )
-                );
-                Restarts.LUBY.declare(solver, 500, 0.d, 5000);
+                intValConf = new SearchParams.ValSelConf(
+                        SearchParams.ValueSelection.MIN, opt, 16, true);
+                intValSel = intValConf.make();
+                intVarConf = new SearchParams.VarSelConf(
+                        SearchParams.VariableSelection.DOMWDEG, 32);
+                intVarSel = intVarConf.make();
+                bb.setIntVarStrategy((vars) -> intVarSel.apply(vars, intValSel.apply(worker)));
+                bb.setMetaStrategy(m -> Search.lastConflict(m, 2));
+                //TODO DEAL WITH SETVAR --> MINIZINC
                 if (reliableness.containsKey(worker)) {
                     manager.add(worker);
                 }
                 break;
             case 1:
-                solver.setSearch(
-                        lastConflict(
-                                VarH.CHS.make(solver, ivars, ValH.MIN, Integer.MAX_VALUE, opt)
-                        )
-                );
-                Restarts.LUBY.declare(solver, 500, 0.d, 5000);
+                intValConf = new SearchParams.ValSelConf(
+                        SearchParams.ValueSelection.MIN, opt, 16, true);
+                intValSel = intValConf.make();
+                intVarConf = new SearchParams.VarSelConf(
+                        SearchParams.VariableSelection.CHS, 32);
+                intVarSel = intVarConf.make();
+                bb.setIntVarStrategy((vars) -> intVarSel.apply(vars, intValSel.apply(worker)));
+                bb.setMetaStrategy(m -> Search.lastConflict(m, 2));
+                //TODO DEAL WITH SETVAR --> MINIZINC
                 if (reliableness.containsKey(worker)) {
                     manager.add(worker);
                 }
                 break;
             case 2:
-                // input order + LC
-                solver.setSearch(
-                        lastConflict(
-                                VarH.INPUT.make(solver, ivars, ValH.MIN, Integer.MAX_VALUE, opt)
-                        )
-                );
+                intValConf = new SearchParams.ValSelConf(
+                        SearchParams.ValueSelection.MIN, opt, 16, true);
+                intValSel = intValConf.make();
+                intVarConf = new SearchParams.VarSelConf(
+                        SearchParams.VariableSelection.DOMWDEG_CACD, 32);
+                intVarSel = intVarConf.make();
+                bb.setIntVarStrategy((vars) -> intVarSel.apply(vars, intValSel.apply(worker)));
+                bb.setMetaStrategy(m -> Search.lastConflict(m, 2));
+                //TODO DEAL WITH SETVAR --> MINIZINC
                 if (reliableness.containsKey(worker)) {
                     manager.add(worker);
                 }
                 break;
             case 3:
-                if (!opt) {
-                    solver.setSearch(
-                            lastConflict(
-                                    VarH.DOMWDEGR.make(solver, ivars, ValH.MIN, Integer.MAX_VALUE, opt)
-                            )
-                    );
-                    Restarts.LUBY.declare(solver, 500, 0.d, 5000);
-                    break;
-                } else {
-                    // input order + LC + LNS
-                    solver.setSearch(
-                            lastConflict(
-                                    VarH.INPUT.make(solver, ivars, ValH.MIN, Integer.MAX_VALUE, opt)
-                            )
-                    );
-                    solver.setLNS(INeighborFactory.blackBox(ivars), new FailCounter(solver.getModel(), 1000));
-                }
+                intValConf = new SearchParams.ValSelConf(
+                        SearchParams.ValueSelection.MIN, opt, 16, true);
+                intValSel = intValConf.make();
+                intVarConf = new SearchParams.VarSelConf(
+                        SearchParams.VariableSelection.FRBA, 32);
+                intVarSel = intVarConf.make();
+                bb.setIntVarStrategy((vars) -> intVarSel.apply(vars, intValSel.apply(worker)));
+                bb.setMetaStrategy(m -> Search.lastConflict(m, 2));
+                //TODO DEAL WITH SETVAR --> MINIZINC
                 if (reliableness.containsKey(worker)) {
                     manager.add(worker);
                 }
                 break;
             case 4:
-                // ABS  + fast restart + LC
-                solver.setSearch(
-                        lastConflict(
-                                VarH.ABS.make(solver, ivars, ValH.DEFAULT, Integer.MAX_VALUE, opt)
-                        )
-                );
-                Restarts.LUBY.declare(solver, 500, 0.d, 5000);
+                intValConf = new SearchParams.ValSelConf(
+                        SearchParams.ValueSelection.MIN, opt, 16, true);
+                intValSel = intValConf.make();
+                intVarConf = new SearchParams.VarSelConf(
+                        SearchParams.VariableSelection.ACTIVITY, 32);
+                intVarSel = intVarConf.make();
+                bb.setIntVarStrategy((vars) -> intVarSel.apply(vars, intValSel.apply(worker)));
+                bb.setMetaStrategy(m -> Search.lastConflict(m, 2));
+                //TODO DEAL WITH SETVAR --> MINIZINC
                 break;
             case 5:
-                // DWD  + fast restart + COS
-                solver.setSearch(
-                        Search.conflictOrderingSearch(
-                                VarH.DOMWDEG.make(solver, ivars, ValH.MIN, Integer.MAX_VALUE, opt)
-                        )
-                );
-                Restarts.LUBY.declare(solver, 500, 0.d, 5000);
-                solver.setSearch(lastConflict(solver.getSearch()));
+                intValConf = new SearchParams.ValSelConf(
+                        SearchParams.ValueSelection.MIN, opt, 16, true);
+                intValSel = intValConf.make();
+                intVarConf = new SearchParams.VarSelConf(
+                        SearchParams.VariableSelection.DOMWDEG_CACD, 32);
+                intVarSel = intVarConf.make();
+                bb.setIntVarStrategy((vars) -> intVarSel.apply(vars, intValSel.apply(worker)));
+                bb.setMetaStrategy(m -> Search.lastConflict(m, 2));
+                //TODO DEAL WITH SETVAR --> MINIZINC
                 break;
             case 6:
-                // DWD  + fast restart + LC (+ B2V)
-                if (!opt) {
-                    solver.setSearch(VarH.DOMWDEG.make(solver, ivars, ValH.MIN, Integer.MAX_VALUE, false));
-                } else {
-                    solver.setSearch(
-                            lastConflict(
-                                    VarH.DOMWDEGR.make(solver, ivars, ValH.MIN, Integer.MAX_VALUE, opt)
-                            )
-                    );
-                    Restarts.LUBY.declare(solver, 500, 0.d, 5000);
-                }
-                break;
-            case 7:
-                solver.setSearch(
-                        lastConflict(
-                                VarH.CHS.make(solver, ivars, ValH.MIN, Integer.MAX_VALUE, opt)
-                        )
-                );
-                Restarts.LUBY.declare(solver, 40, 0.d, 5000);
+                intValConf = new SearchParams.ValSelConf(
+                        SearchParams.ValueSelection.MIN, opt, 16, true);
+                intValSel = intValConf.make();
+                intVarConf = new SearchParams.VarSelConf(
+                        SearchParams.VariableSelection.DOMWDEG, 32);
+                intVarSel = intVarConf.make();
+                bb.setIntVarStrategy((vars) -> intVarSel.apply(vars, intValSel.apply(worker)));
+                bb.setMetaStrategy(m -> Search.lastConflict(m, 2));
+                //TODO DEAL WITH SETVAR --> MINIZINC
                 if (reliableness.containsKey(worker)) {
                     manager.add(worker);
                 }
                 break;
+            case 7:
+                intValConf = new SearchParams.ValSelConf(
+                        SearchParams.ValueSelection.MIN, opt, 16, true);
+                intValSel = intValConf.make();
+                intVarConf = new SearchParams.VarSelConf(
+                        SearchParams.VariableSelection.FRBA, 32);
+                intVarSel = intVarConf.make();
+                bb.setIntVarStrategy((vars) -> intVarSel.apply(vars, intValSel.apply(worker)));
+                bb.setMetaStrategy(m -> Search.lastConflict(m, 2));
+                //TODO DEAL WITH SETVAR --> MINIZINC
+                break;
             default:
-                // random search (various seeds) + LNS if optim
-                solver.setSearch(lastConflict(randomSearch(ivars, workerID)));
-                if (policy != ResolutionPolicy.SATISFACTION) {
-                    solver.setLNS(INeighborFactory.blackBox(ivars), new FailCounter(solver.getModel(), 1000));
-                }
-                if (reliableness.containsKey(worker)) {
-                    solver.plugMonitor(new NogoodFromRestarts(worker, manager));
-                }
-                solver.setRestarts(count -> solver.getFailCount() >= count, new LubyCutoffStrategy(500), 5000);
+                intValConf = new SearchParams.ValSelConf(
+                        SearchParams.ValueSelection.MIN, opt, 16, true);
+                intValSel = intValConf.make();
+                intVarConf = new SearchParams.VarSelConf(
+                        SearchParams.VariableSelection.CHS, 32);
+                intVarSel = intVarConf.make();
+                bb.setIntVarStrategy((vars) -> intVarSel.apply(vars, intValSel.apply(worker)));
+                bb.setMetaStrategy(m -> Search.lastConflict(m, 1));
+                //TODO DEAL WITH SETVAR --> MINIZINC
                 break;
         }
-        // complete with set default search
-        if (ks > 0) {
-            solver.setSearch(solver.getSearch(), setVarSearch(svars));
-        }
-        // complete with real default search
-        if (kr > 0) {
-            solver.setSearch(solver.getSearch(), realVarSearch(rvars));
-        }
+        bb.make(worker);
     }
 
     private void check() {
@@ -586,8 +562,7 @@ public class ParallelPortfolio {
             if ((objective.getTypeAndKind() & Variable.REAL) != 0) {
                 for (Constraint c : models.get(0).getCstrs()) {
                     if (c instanceof RealConstraint) {
-                        throw new UnsupportedOperationException("" +
-                                "Ibex is not multithread safe, ParallelPortfolio cannot be used");
+                        throw new UnsupportedOperationException("Ibex is not multithread safe, ParallelPortfolio cannot be used");
                     }
                 }
             }

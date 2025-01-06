@@ -1,7 +1,7 @@
 /*
  * This file is part of choco-solver, http://choco-solver.org/
  *
- * Copyright (c) 2022, IMT Atlantique. All rights reserved.
+ * Copyright (c) 2024, IMT Atlantique. All rights reserved.
  *
  * Licensed under the BSD 4-clause license.
  *
@@ -36,6 +36,32 @@ public class BoolVarImplTest {
 
     public void setUp() throws Exception {
         var = new BoolVarImpl("test", new Model());
+    }
+
+    @Test(groups = "1s", timeOut = 60000, expectedExceptions = ContradictionException.class)
+    public void testUpdateInfeasBounds1() throws Exception {
+        setUp();
+        var.updateBounds(1, 0, Cause.Null);
+    }
+
+
+    @Test(groups = "1s", timeOut = 60000, expectedExceptions = ContradictionException.class)
+    public void testUpdateInfeasBounds2() throws Exception {
+        setUp();
+        var.updateBounds(2, 1, Cause.Null);
+    }
+
+
+    @Test(groups = "1s", timeOut = 60000, expectedExceptions = ContradictionException.class)
+    public void testUpdateInfeasBounds3() throws Exception {
+        setUp();
+        var.updateBounds(0, -1, Cause.Null);
+    }
+
+    @Test(groups = "1s", timeOut = 60000, expectedExceptions = ContradictionException.class)
+    public void testUpdateInfeasBounds4() throws Exception {
+        setUp();
+        var.updateBounds(2, -1, Cause.Null);
     }
 
     @Test(groups = "1s", timeOut = 60000)

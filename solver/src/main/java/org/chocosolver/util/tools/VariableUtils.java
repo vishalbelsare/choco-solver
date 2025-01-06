@@ -1,7 +1,7 @@
 /*
  * This file is part of choco-solver, http://choco-solver.org/
  *
- * Copyright (c) 2022, IMT Atlantique. All rights reserved.
+ * Copyright (c) 2024, IMT Atlantique. All rights reserved.
  *
  * Licensed under the BSD 4-clause license.
  *
@@ -15,6 +15,8 @@ import org.chocosolver.solver.variables.IntVar;
 import org.chocosolver.solver.variables.RealVar;
 import org.chocosolver.solver.variables.Variable;
 import org.chocosolver.util.objects.RealInterval;
+import org.chocosolver.util.objects.setDataStructures.iterable.IntIterableRangeSet;
+import org.chocosolver.util.objects.setDataStructures.iterable.IntIterableSetUtils;
 
 import java.util.Arrays;
 import java.util.Iterator;
@@ -54,11 +56,11 @@ public class VariableUtils {
         for (int i = 0; i < vars.length; i++) {
             int c = coeffs[i];
             if (c >= 0) {
-                bounds[0] += vars[i].getLB() * coeffs[i];
-                bounds[1] += vars[i].getUB() * coeffs[i];
+                bounds[0] += (long) vars[i].getLB() * coeffs[i];
+                bounds[1] += (long) vars[i].getUB() * coeffs[i];
             } else {
-                bounds[0] += vars[i].getUB() * coeffs[i];
-                bounds[1] += vars[i].getLB() * coeffs[i];
+                bounds[0] += (long) vars[i].getUB() * coeffs[i];
+                bounds[1] += (long) vars[i].getLB() * coeffs[i];
             }
         }
         return new int[]{MathUtils.safeCast(bounds[0]), MathUtils.safeCast(bounds[1])};
@@ -117,10 +119,10 @@ public class VariableUtils {
      */
     public static int[] boundsForMultiplication(IntVar x, IntVar y) {
         return bound(
-                x.getLB() * y.getLB(),
-                x.getLB() * y.getUB(),
-                x.getUB() * y.getLB(),
-                x.getUB() * y.getUB()
+                (long) x.getLB() * y.getLB(),
+                (long) x.getLB() * y.getUB(),
+                (long) x.getUB() * y.getLB(),
+                (long) x.getUB() * y.getUB()
         );
     }
 
@@ -353,21 +355,21 @@ public class VariableUtils {
     }
 
     /**
-         * Compute the search space size
-         *
-         * @return search space size
-         */
-        public static double searchSpaceSize(Iterator<IntVar> vars) {
-            double size = 1;
-            while (vars.hasNext() && size >= 0 && size < Double.POSITIVE_INFINITY) {
-                IntVar var = vars.next();
-                size *= var.getDomainSize();
-            }
-            if (size <= 0 || size == Double.POSITIVE_INFINITY) {
-                size = Double.MAX_VALUE;
-            }
-            return size;
+     * Compute the search space size
+     *
+     * @return search space size
+     */
+    public static double searchSpaceSize(Iterator<IntVar> vars) {
+        double size = 1;
+        while (vars.hasNext() && size >= 0 && size < Double.POSITIVE_INFINITY) {
+            IntVar var = vars.next();
+            size *= var.getDomainSize();
         }
+        if (size <= 0 || size == Double.POSITIVE_INFINITY) {
+            size = Double.MAX_VALUE;
+        }
+        return size;
+    }
 
     /**
      * @param x an int variable
@@ -396,6 +398,44 @@ public class VariableUtils {
             }
         }
         return false;
+    }
+
+    /**
+     * Create a set that stores the union of <i>vars</i> current domain.
+     *
+     * @param vars a list of variables
+     * @return the union of <i>vars</i>
+     */
+    public static IntIterableRangeSet union(IntVar... vars) {
+        IntIterableRangeSet set = new IntIterableRangeSet();
+        if (vars.length == 0) {
+            return set;
+        }
+        for (IntVar var : vars) {
+            set.addAll(var);
+        }
+        return set;
+    }
+
+    /**
+     * Create a set that stores the intersection of <i>vars</i> current domain.
+     *
+     * @param vars a list of variables
+     * @return the intersection of <i>vars</i>
+     */
+    public static IntIterableRangeSet intersection(IntVar... vars) {
+        IntIterableRangeSet set = new IntIterableRangeSet();
+        if (vars.length == 0) {
+            return set;
+        }
+        set.addAll(vars[0]);
+        IntIterableRangeSet set0 = new IntIterableRangeSet();
+        for (int i = 1; i < vars.length && set.size() > 0; i++) {
+            set0.clear();
+            set0.addAll(vars[i]);
+            set = IntIterableSetUtils.intersection(set0, set);
+        }
+        return set;
     }
 
     /**
@@ -431,9 +471,19 @@ public class VariableUtils {
      * @param var a variable
      * @return <i>true</i> if the variable is an int variable, based on its kind,
      * <i>false</i> otherwise
+     * @implNote BoolVar is considered as an int variable too
      */
     public static boolean isInt(Variable var) {
         return (var.getTypeAndKind() & Variable.INT) != 0;
+    }
+
+    /**
+     * @param var a variable
+     * @return <i>true</i> if the variable is a Boolean variable, based on its kind,
+     * <i>false</i> otherwise
+     */
+    public static boolean isBool(Variable var) {
+        return ((var.getTypeAndKind() & Variable.KIND) == Variable.BOOL);
     }
 
     /**

@@ -1,7 +1,7 @@
 /*
  * This file is part of choco-solver, http://choco-solver.org/
  *
- * Copyright (c) 2022, IMT Atlantique. All rights reserved.
+ * Copyright (c) 2024, IMT Atlantique. All rights reserved.
  *
  * Licensed under the BSD 4-clause license.
  *
@@ -18,11 +18,14 @@ import org.chocosolver.solver.*;
 import org.chocosolver.solver.constraints.Constraint;
 import org.chocosolver.solver.constraints.extension.Tuples;
 import org.chocosolver.solver.constraints.extension.TuplesFactory;
+import org.chocosolver.solver.constraints.extension.hybrid.HybridTuples;
+import org.chocosolver.solver.constraints.extension.hybrid.ISupportable;
 import org.chocosolver.solver.constraints.extension.nary.TuplesLargeTable;
 import org.chocosolver.solver.constraints.extension.nary.TuplesTable;
 import org.chocosolver.solver.constraints.extension.nary.TuplesVeryLargeTable;
 import org.chocosolver.solver.exception.ContradictionException;
 import org.chocosolver.solver.exception.SolverException;
+import org.chocosolver.solver.search.strategy.strategy.FullyRandom;
 import org.chocosolver.solver.variables.BoolVar;
 import org.chocosolver.solver.variables.IntVar;
 import org.chocosolver.util.ESat;
@@ -32,12 +35,14 @@ import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 
 import static java.lang.System.out;
 import static org.chocosolver.solver.constraints.extension.TuplesFactory.generateTuples;
 import static org.chocosolver.solver.constraints.extension.TuplesFactory.scalar;
+import static org.chocosolver.solver.constraints.extension.hybrid.HybridTuples.*;
 import static org.chocosolver.solver.search.strategy.Search.randomSearch;
 import static org.testng.Assert.assertEquals;
 
@@ -493,7 +498,7 @@ public class TableTest {
             model.getSolver().propagate();
         } catch (ContradictionException e) {
             e.printStackTrace();
-            Assert.assertTrue(false);
+            Assert.fail();
         }
         Assert.assertEquals(table.isSatisfied(), ESat.FALSE);
         Assert.assertEquals(ts.check(x, y, z), ESat.FALSE);
@@ -579,6 +584,33 @@ public class TableTest {
 
         solver.findAllSolutions();
         Assert.assertEquals(solver.getSolutionCount(), 7);
+    }
+
+    @Test(groups = "1s", timeOut = 60000, dataProvider = "starred")
+    public void testST4(String staralgo) {
+        Model model = new Model();
+        //IntVar w = model.intVar("w", 0, 1);
+        IntVar st = model.intVar("x", 1, 3);
+        IntVar cp = model.intVar("y", 2, 2);
+        IntVar t = model.intVar("z", 0, 999);
+        IntVar l = model.intVar("z", 1, 70_000, true);
+        Tuples ts = new Tuples(true);
+        int ST = -1;
+        ts.setUniversalValue(ST);
+        ts.add(1, 2, ST, 3500);
+        ts.add(2, 2, ST, 3500);
+        model.table(new IntVar[]{st, cp, t, l}, ts, staralgo).post();
+
+
+        // t = 0 ==> l = [3500, 69999], st = 2 ==> l = [3500, 69998]
+        Solver solver = model.getSolver();
+        try {
+            solver.propagate();
+            Assert.assertEquals(l.getUB(), 3500);
+            out.printf("%s\n", model);
+        } catch (ContradictionException ce) {
+            Assert.fail();
+        }
     }
 
     @Test(groups = "1s", timeOut = 60000, dataProvider = "balgos")
@@ -757,7 +789,7 @@ public class TableTest {
         if (a.equals("FC")) return;
         Model cp = new Model();
         IntVar x0 = cp.intVar(new int[]{-1, 1, 4});
-        IntVar x1 = cp.intOffsetView(x0, 10);
+        IntVar x1 = cp.offset(x0, 10);
         IntVar x2 = cp.intVar(new int[]{2, 3});
         Tuples t = new Tuples();
         {
@@ -784,7 +816,7 @@ public class TableTest {
         if (a.equals("FC")) return;
         Model cp = new Model();
         IntVar x0 = cp.intVar(new int[]{-1, 1, 4});
-        IntVar x1 = cp.intOffsetView(x0, 10);
+        IntVar x1 = cp.offset(x0, 10);
         IntVar x2 = cp.intVar(new int[]{2, 3});
         Tuples t = new Tuples();
         {
@@ -809,6 +841,127 @@ public class TableTest {
         Constraint table = model.table(new IntVar[]{foo, bar, far}, TuplesFactory.randomTuples(.5, new Random(13), foo, bar, far));
         table.post();
         Assert.assertEquals(model.getSolver().findAllSolutions().size(), 255);
+    }
+
+    @Test(groups = "1s", timeOut = 60000, dataProvider = "algos")
+    public void testReify(String a) {
+        Model model = new Model();
+        IntVar x = model.intVar("x", 0, 6);
+        IntVar y = model.intVar("y", 1, 5);
+        IntVar z = model.intVar("y", 2, 4);
+
+        x.in(3).post();
+        y.in(2).post();
+        z.in(4).post();
+
+        Tuples tuples = new Tuples();
+        tuples.add(2, 2, 2);
+        tuples.add(3, 3, 3);
+        tuples.add(4, 4, 4);
+
+        BoolVar r = model.table(new IntVar[]{x, y, z}, tuples, a).reify();
+
+        try {
+            model.getSolver().propagate();
+        } catch (ContradictionException e) {
+            Assert.fail();
+        }
+        Assert.assertTrue(r.isInstantiatedTo(0));
+    }
+
+
+    @Test(groups = "1s", timeOut = 60000, dataProvider = "algos")
+    public void testMany1(String a) {
+        for(int i = 0; i < 200; i++) {
+            Model model = new Model();
+            IntVar x = model.intVar("x", new int[]{-4, -1, 2});
+            IntVar y = model.intVar("y", -2, -1);
+            Tuples t = new Tuples();
+            t.add(2, -2, -4);
+            t.add(-1, -2, 2);
+            model.table(new IntVar[]{x, y, x}, t, a).post();
+            Solver solver = model.getSolver();
+            solver.setSearch(new FullyRandom(new IntVar[]{x}, i));
+            while (model.getSolver().solve()) {
+                out.printf("%d - %d - %d\n", x.getValue(), y.getValue(), x.getValue());
+            }
+            Assert.assertEquals(model.getSolver().getSolutionCount(), 0);
+        }
+    }
+
+    @Test(groups = "1s", timeOut = 60000, dataProvider = "balgos")
+    public void testMany2(String a) {
+        for(int i = 0; i < 200; i++) {
+            Model model = new Model();
+            IntVar x = model.intVar("x", new int[]{1, 2, 4, 7, 18});
+            Tuples t = new Tuples();
+            t.add(1, 4);
+            t.add(2, 1);
+            t.add(4, 7);
+            t.add(7, 2);
+            t.add(7, 7);
+            t.add(18, 18);
+            model.table(x, x, t, a).post();
+            Solver solver = model.getSolver();
+            solver.setSearch(new FullyRandom(new IntVar[]{x}, i));
+            while (model.getSolver().solve()) {
+                out.printf("%d - %d\n", x.getValue(), x.getValue());
+            }
+            Assert.assertEquals(model.getSolver().getSolutionCount(), 2);
+        }
+    }
+
+    @Test(groups = "1s", timeOut = 60000, dataProvider = "balgos")
+    public void testForbidden1(String a) {
+        if (a.equals("CT+")) return;
+        Model model = new Model();
+        IntVar x = model.intVar("x", 0, 2);
+        IntVar y = model.intVar("y", 0, 2);
+        Tuples t = new Tuples(false);
+        t.add(0, 0);
+        t.add(1, 1);
+        t.add(2, 2);
+        model.table(x, y, t, a).post();
+        while (model.getSolver().solve()) {
+            out.printf("%d - %d\n", x.getValue(), y.getValue());
+        }
+        Assert.assertEquals(model.getSolver().getSolutionCount(), (int) Math.pow(3, 2) - 3);
+    }
+
+    @Test(groups = "1s", timeOut = 60000, dataProvider = "algos")
+    public void testForbidden2(String a) {
+        if (a.contains("+")) return;
+        Model model = new Model();
+        IntVar x = model.intVar("x", 0, 2);
+        IntVar y = model.intVar("y", 0, 2);
+        IntVar z = model.intVar("z", 0, 2);
+        Tuples t = new Tuples(false);
+        t.add(0, 0, 0);
+        t.add(1, 1, 1);
+        t.add(2, 2, 2);
+        model.table(new IntVar[]{x, y, z}, t, a).post();
+        while (model.getSolver().solve()) {
+            out.printf("%d - %d - %d\n", x.getValue(), y.getValue(), z.getValue());
+        }
+        Assert.assertEquals(model.getSolver().getSolutionCount(), (int) Math.pow(3, 3) - 3);
+    }
+
+    @Test(groups = "1s")
+    public void testHybrid() {
+        Model m = new Model();
+        IntVar[] intVars = m.intVarArray(3, 0, 5);
+        ISupportable[][] htuples = new ISupportable[][]{
+                {eq(1), gt(2), le(col(0))},
+                {eq(2), le(2), ne(col(1))}
+
+        };
+        HybridTuples ht = new HybridTuples();
+        ht.add(htuples);
+        m.table(intVars, ht).post();
+        for (int i = 0; i < 7; i++) {
+            m.getSolver().solve();
+            out.println(Arrays.toString(intVars));
+        }
     }
 
 }

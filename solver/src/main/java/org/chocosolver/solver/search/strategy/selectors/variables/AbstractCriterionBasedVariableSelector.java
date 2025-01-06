@@ -1,7 +1,7 @@
 /*
  * This file is part of choco-solver, http://choco-solver.org/
  *
- * Copyright (c) 2022, IMT Atlantique. All rights reserved.
+ * Copyright (c) 2024, IMT Atlantique. All rights reserved.
  *
  * Licensed under the BSD 4-clause license.
  *
@@ -23,10 +23,8 @@ import org.chocosolver.solver.variables.IVariableMonitor;
 import org.chocosolver.solver.variables.Variable;
 import org.chocosolver.solver.variables.events.IEventType;
 
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
+import java.util.*;
+import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
@@ -60,10 +58,7 @@ public abstract class AbstractCriterionBasedVariableSelector<V extends Variable>
                     w = new double[p.getNbVars()];
                 } else if (w.length < p.getNbVars()) {
                     // may happen propagators (like PropSat) with dynamic variable addition
-                    w = new double[p.getNbVars()];
-                    double[] nw = new double[p.getNbVars()];
-                    System.arraycopy(w, 0, nw, 0, w.length);
-                    w = nw;
+                    w = Arrays.copyOf(w, p.getNbVars());
                 }
                 return w;
             };
@@ -108,7 +103,7 @@ public abstract class AbstractCriterionBasedVariableSelector<V extends Variable>
      */
     private final HashMap<Variable, Integer> observed = new HashMap<>();
     /**
-     * Scoring for each variables, is updated dynamically.
+     * Scoring for each variable, is updated dynamically.
      */
     final TObjectDoubleMap<Variable> weights = new TObjectDoubleHashMap<>(15, 1.5f, 0.);
     /**
@@ -117,6 +112,17 @@ public abstract class AbstractCriterionBasedVariableSelector<V extends Variable>
      */
     final HashMap<Propagator<?>, double[]> refinedWeights = new HashMap<>();
     static final double[] rw = {0.};
+
+    final BiConsumer<Variable, Propagator<?>> update = (v, p) -> {
+        Element elt = failCount.get(p);
+        if (elt != null) {
+            if (p.getVar(elt.ws[0]) == v) {
+                updateFutvars(p, elt, 0);
+            } else if (p.getVar(elt.ws[1]) == v) {
+                updateFutvars(p, elt, 1);
+            }
+        }
+    };
 
     public AbstractCriterionBasedVariableSelector(V[] vars, long seed, int flush) {
         this.random = new java.util.Random(seed);
@@ -154,7 +160,7 @@ public abstract class AbstractCriterionBasedVariableSelector<V extends Variable>
             }
         }
         last.set(to);
-        if (bests.size() > 0) {
+        if (!bests.isEmpty()) {
             //System.out.printf("%s%n", bests);
             int currentVar = bests.get(random.nextInt(bests.size()));
             best = vars[currentVar];
@@ -165,7 +171,7 @@ public abstract class AbstractCriterionBasedVariableSelector<V extends Variable>
     protected abstract double weight(V v);
 
     @Override
-    public final void onContradiction(ContradictionException cex) {
+    public void onContradiction(ContradictionException cex) {
         conflicts++;
         if (cex.c instanceof Propagator) {
             Propagator<?> prop = (Propagator<?>) cex.c;
@@ -258,19 +264,21 @@ public abstract class AbstractCriterionBasedVariableSelector<V extends Variable>
     ////////////////// THIS IS RELATED TO INCREMENTAL FUTVARS ////////////
     //////////////////////////////////////////////////////////////////////
 
-
+    private final BiFunction<Variable, Integer, Integer> inc = (v, i) -> i + 1;
     final void plug(Variable var) {
         if (!observed.containsKey(var)) {
             observed.put(var, 1);
             var.addMonitor(this);
         } else {
-            observed.computeIfPresent(var, (v, c) -> c + 1);
+            observed.computeIfPresent(var, inc);
         }
     }
 
+    private final BiFunction<Variable, Integer, Integer> dec = (v, i) -> i - 1;
+
     private void unplug(Variable var) {
         assert observed.containsKey(var);
-        Integer obs = observed.computeIfPresent(var, (v, c) -> c - 1);
+        Integer obs = observed.computeIfPresent(var, dec);
         if (obs != null && obs == 0) {
             var.removeMonitor(this);
             observed.remove(var);
@@ -290,16 +298,7 @@ public abstract class AbstractCriterionBasedVariableSelector<V extends Variable>
     @Override
     public final void onUpdate(Variable var, IEventType evt) {
         if (var.isInstantiated()) {
-            var.streamPropagators().forEach(p -> {
-                Element elt = failCount.get(p);
-                if (elt != null) {
-                    if (p.getVar(elt.ws[0]) == var) {
-                        updateFutvars(p, elt, 0);
-                    } else if (p.getVar(elt.ws[1]) == var) {
-                        updateFutvars(p, elt, 1);
-                    }
-                }
-            });
+            var.forEachPropagator(update);
         }
     }
 

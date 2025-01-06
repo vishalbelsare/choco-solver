@@ -1,7 +1,7 @@
 /*
  * This file is part of examples, http://choco-solver.org/
  *
- * Copyright (c) 2022, IMT Atlantique. All rights reserved.
+ * Copyright (c) 2024, IMT Atlantique. All rights reserved.
  *
  * Licensed under the BSD 4-clause license.
  *
@@ -48,7 +48,7 @@ public class CostasArrays extends AbstractProblem {
 				IntVar d = model.intVar(model.generateName(), -n, n, false);
 				model.arithm(d, "!=", 0).post();
 				model.sum(new IntVar[]{vars[i], d}, "=", vars[j]).post();
-				vectors[k] = model.intOffsetView(d, 2 * n * (j - i));
+                vectors[k] = model.offset(d, 2 * n * (j - i));
 			}
 		}
 		model.allDifferent(vars, "AC").post();

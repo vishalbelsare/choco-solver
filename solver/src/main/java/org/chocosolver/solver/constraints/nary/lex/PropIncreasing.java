@@ -1,7 +1,7 @@
 /*
  * This file is part of choco-solver, http://choco-solver.org/
  *
- * Copyright (c) 2022, IMT Atlantique. All rights reserved.
+ * Copyright (c) 2024, IMT Atlantique. All rights reserved.
  *
  * Licensed under the BSD 4-clause license.
  *
@@ -47,15 +47,19 @@ public class PropIncreasing extends Propagator<IntVar> {
             for (int j = vars.length - 1; j > 0; j--) {
                 vars[j - 1].updateUpperBound(vars[j].getUB() - strict, this);
             }
+            left = vars.length - 1;
+            right = 0;
         } else {
             int i = left;
             left = vars.length - 1;
             int j = right;
             right = 0;
-            while (i < vars.length - 1 && vars[i + 1].updateLowerBound(vars[i].getLB() + strict, this)) {
+            while (i < vars.length - 1) {
+                vars[i + 1].updateLowerBound(vars[i].getLB() + strict, this);
                 i++;
             }
-            while (j > 0 && vars[j - 1].updateUpperBound(vars[j].getUB() - strict, this)) {
+            while (j > 0) {
+                vars[j - 1].updateUpperBound(vars[j].getUB() - strict, this);
                 j--;
             }
         }
@@ -78,13 +82,12 @@ public class PropIncreasing extends Propagator<IntVar> {
     public ESat isEntailed() {
         int cnt = 0;
         for (int i = 0; i < vars.length - 1; i++) {
-            if (vars[i].getLB() > vars[i + 1].getLB() ||
-                    vars[i].getUB() > vars[i + 1].getUB()) {
-                return ESat.FALSE;
-            } else if (vars[i].getUB() < vars[i + 1].getLB()) {
+            if (vars[i].getUB() + strict <= vars[i + 1].getLB()) {
                 cnt++;
+            } else if (vars[i].getLB() + strict > vars[i + 1].getUB()) {
+                return ESat.FALSE;
             }
         }
-        return cnt == vars.length ? ESat.TRUE : ESat.UNDEFINED;
+        return cnt == vars.length - 1 ? ESat.TRUE : ESat.UNDEFINED;
     }
 }

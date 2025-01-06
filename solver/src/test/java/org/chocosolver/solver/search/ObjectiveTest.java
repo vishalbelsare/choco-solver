@@ -1,7 +1,7 @@
 /*
  * This file is part of choco-solver, http://choco-solver.org/
  *
- * Copyright (c) 2022, IMT Atlantique. All rights reserved.
+ * Copyright (c) 2024, IMT Atlantique. All rights reserved.
  *
  * Licensed under the BSD 4-clause license.
  *
@@ -10,7 +10,8 @@
 package org.chocosolver.solver.search;
 
 
-import org.chocosolver.cutoffseq.LubyCutoffStrategy;
+import org.chocosolver.solver.search.restart.GeometricalCutoff;
+import org.chocosolver.solver.search.restart.LubyCutoff;
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.ResolutionPolicy;
 import org.chocosolver.solver.Solution;
@@ -226,7 +227,7 @@ public class ObjectiveTest {
             r.setSearch(Search.objectiveStrategy(a, p), minDomLBSearch(a));
             r.setNoGoodRecordingFromSolutions(a);
             while (model.getSolver().solve()) ;
-            assertEquals(model.getSolver().isStopCriterionMet(), false);
+            assertFalse(model.getSolver().isStopCriterionMet());
         }
     }
 
@@ -241,7 +242,7 @@ public class ObjectiveTest {
             r.setSearch(Search.objectiveStrategy(objective, p), randomSearch(ticks, 0L));
             r.setNoGoodRecordingFromSolutions(ticks);
             while (model.getSolver().solve()) ;
-            assertEquals(model.getSolver().isStopCriterionMet(), false);
+            assertFalse(model.getSolver().isStopCriterionMet());
             assertEquals(r.getBestSolutionValue(), 34);
         }
     }
@@ -262,7 +263,7 @@ public class ObjectiveTest {
             model.getSolver().reset();
             final int finalI = i;
             oman.setCutComputer(n -> n.intValue() - ends[finalI]);
-            oman.updateBestUB(best);
+            oman.updateBestSolution(best);
         }
         assertEquals(best, 34);
         assertEquals(model.getSolver().getSolutionCount(), 0); // the last resolution fails at finding solutions
@@ -283,7 +284,7 @@ public class ObjectiveTest {
             }
             model.getSolver().reset();
             ends[0] = floorDiv(ends[0], 2);
-            oman.updateBestUB(best);
+            oman.updateBestSolution(best);
         }
         assertEquals(best, 34);
         assertEquals(model.getSolver().getSolutionCount(), 0); // the last resolution fails at finding solutions
@@ -462,12 +463,28 @@ public class ObjectiveTest {
             }
             )
         ));
-        solver.setRestarts(c -> solver.getFailCount() > c, new LubyCutoffStrategy(2), 512);
+        solver.setRestarts(c -> solver.getFailCount() > c, new LubyCutoff(2), 512);
         solver.setNoGoodRecordingFromSolutions(ticks);
         solver.showShortStatistics();
         while (model.getSolver().solve()) {
         }
-        assertEquals(model.getSolver().isStopCriterionMet(), false);
+        assertFalse(model.getSolver().isStopCriterionMet());
         assertEquals(solver.getBestSolutionValue(), 44);
+    }
+
+    @Test(groups = "1s", timeOut = 60000)
+    public void testCP2() {
+        for (OptimizationPolicy p : OptimizationPolicy.values()) {
+            Model model = makeGolombRuler(12);
+            IntVar objective = (IntVar) model.getHook("objective");
+            model.setObjective(Model.MINIMIZE, objective);
+            Solver solver = model.getSolver();
+            solver.setSearch(Search.objectiveStrategy(objective, p), minDomUBSearch(objective));
+            solver.setRestarts(c -> solver.getFailCount() > c, new GeometricalCutoff(10, 1.2), 15);
+            solver.setNoGoodRecordingFromRestarts();
+            solver.showShortStatistics();
+            while (model.getSolver().solve()) ;
+            assertFalse(model.getSolver().isStopCriterionMet());
+        }
     }
 }

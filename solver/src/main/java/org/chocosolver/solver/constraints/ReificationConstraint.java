@@ -1,7 +1,7 @@
 /*
  * This file is part of choco-solver, http://choco-solver.org/
  *
- * Copyright (c) 2022, IMT Atlantique. All rights reserved.
+ * Copyright (c) 2024, IMT Atlantique. All rights reserved.
  *
  * Licensed under the BSD 4-clause license.
  *
@@ -14,7 +14,6 @@ import org.chocosolver.solver.constraints.reification.PropReif;
 import org.chocosolver.solver.exception.ContradictionException;
 import org.chocosolver.solver.variables.BoolVar;
 import org.chocosolver.solver.variables.Variable;
-import org.chocosolver.solver.variables.events.PropagatorEventType;
 import org.chocosolver.util.ESat;
 import org.chocosolver.util.tools.ArrayUtils;
 
@@ -107,7 +106,7 @@ public class ReificationConstraint extends Constraint {
         for (int p = indices[idx]; p < indices[idx + 1]; p++) {
             assert (propagators[p].isReifiedAndSilent());
             propagators[p].setReifiedTrue();
-            propagators[p].propagate(PropagatorEventType.FULL_PROPAGATION.getMask());
+            model.getSolver().getEngine().execute(propagators[p]);
             model.getSolver().getEngine().onPropagatorExecution(propagators[p]);
         }
     }

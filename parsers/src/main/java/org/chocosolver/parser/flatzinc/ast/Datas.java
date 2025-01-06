@@ -1,7 +1,7 @@
 /*
  * This file is part of choco-parsers, http://choco-solver.org/
  *
- * Copyright (c) 2022, IMT Atlantique. All rights reserved.
+ * Copyright (c) 2024, IMT Atlantique. All rights reserved.
  *
  * Licensed under the BSD 4-clause license.
  *
@@ -189,6 +189,9 @@ public class Datas {
                 }
             }
         }
+        if (oss) {
+            outputStatistics(solver);
+        }
         if (level.isLoggable(Level.COMPET)) {
             solver.log().bold().print("----------\n");
         }
@@ -210,15 +213,25 @@ public class Datas {
                         solver.getTimeCount());
             }
             if (level.is(Level.JSON)) {
-                solver.log().printf(Locale.US, "%s{\"bound\":%d,\"time\":%.1f}",
+                solver.log().printf(Locale.US, "%s\n\t\t{\"bound\":%d, \"time\":%.1f, " +
+                                "\"solutions\":%d, \"nodes\":%d, \"failures\":%d, \"restarts\":%d}",
                         solver.getSolutionCount() > 1 ? "," : "",
                         solver.getObjectiveManager().getBestSolutionValue().intValue(),
-                        solver.getTimeCount());
+                        solver.getTimeCount(),
+                        solver.getSolutionCount(),
+                        solver.getNodeCount(),
+                        solver.getFailCount(),
+                        solver.getRestartCount());
             }
         } else {
             if (level.is(Level.JSON)) {
-                solver.log().printf("{\"time\":%.1f},",
-                        solver.getTimeCount());
+                solver.log().printf(Locale.US, "\t\t{\"time\":%.1f," +
+                                "\"solutions\":%d, \"nodes\":%d, \"failures\":%d, \"restarts\":%d}",
+                        solver.getTimeCount(),
+                        solver.getSolutionCount(),
+                        solver.getNodeCount(),
+                        solver.getFailCount(),
+                        solver.getRestartCount());
             }
         }
     }
@@ -267,8 +280,14 @@ public class Datas {
                     solver.getTimeCount());
         }
         if (level.is(Level.JSON)) {
-            solver.log().printf(Locale.US, "],\"exit\":{\"time\":%.1f,\"status\":\"%s\"}}",
-                    solver.getTimeCount(), complete ? "terminated" : "stopped");
+            solver.log().printf(Locale.US, "\n\t],\n\t\"exit\":{\"time\":%.1f, " +
+                            "\"nodes\":%d, \"failures\":%d, \"restarts\":%d, \"status\":\"%s\"}\n}",
+                    solver.getTimeCount(),
+                    solver.getNodeCount(),
+                    solver.getFailCount(),
+                    solver.getRestartCount(),
+                    solver.getSearchState()
+            );
         }
         if (level.is(Level.IRACE)) {
             /*long obj = solver.getObjectiveManager().isOptimization() ?
@@ -293,16 +312,32 @@ public class Datas {
             solver.log().bold().white().printf("%s \n", solver.getMeasures().toOneLineString());
         }
         if (oss) {
-            solver.log().printf(Locale.US, "%%%%%%mzn-stat: initTime=%.3f%n", solver.getReadingTimeCount());
-            solver.log().printf(Locale.US, "%%%%%%mzn-stat: solveTime=%.3f%n", solver.getTimeCount());
-            solver.log().printf("%%%%%%mzn-stat: solutions=%d%n", solver.getSolutionCount());
-            solver.log().printf("%%%%%%mzn-stat: variables=%d%n", solver.getModel().getNbVars());
-            solver.log().printf("%%%%%%mzn-stat: constraints=%d%n", solver.getModel().getNbCstrs());
-            solver.log().printf("%%%%%%mzn-stat: nodes=%d%n", solver.getNodeCount());
-            solver.log().printf("%%%%%%mzn-stat: failures=%d%n", solver.getFailCount());
-            solver.log().printf("%%%%%%mzn-stat: restarts=%d%n", solver.getRestartCount());
-            solver.log().println("%%%mzn-stat-end");
+            outputStatistics(solver);
         }
+    }
+
+    private void outputStatistics(Solver solver) {
+        solver.log().printf(Locale.US, "%%%%%%mzn-stat: initTime=%.3f%n", solver.getReadingTimeCount());
+        solver.log().printf(Locale.US, "%%%%%%mzn-stat: solveTime=%.3f%n", solver.getTimeCount());
+        solver.log().printf("%%%%%%mzn-stat: solutions=%d%n", solver.getSolutionCount());
+        solver.log().printf("%%%%%%mzn-stat: variables=%d%n", solver.getModel().getNbVars());
+        solver.log().printf("%%%%%%mzn-stat: intVariables=%d%n", solver.getModel().getNbIntVar(false));
+        solver.log().printf("%%%%%%mzn-stat: boolVariables=%d%n", solver.getModel().getNbBoolVar());
+        solver.log().printf("%%%%%%mzn-stat: setVariables=%d%n", solver.getModel().getNbSetVar());
+        solver.log().printf("%%%%%%mzn-stat: constraints=%d%n", solver.getModel().getNbCstrs());
+        if (solver.getObjectiveManager().isOptimization()) {
+            solver.log().printf("%%%%%%mzn-stat: objective=%d%n", solver.getObjectiveManager().getBestSolutionValue().intValue());
+//            Number bnd = solver.getObjectiveManager().getBestLB();
+//            if (solver.getObjectiveManager().getPolicy().equals(ResolutionPolicy.MAXIMIZE)) {
+//                bnd = solver.getObjectiveManager().getBestUB();
+//            }
+//            solver.log().printf("%%%%%%mzn-stat: objectiveBound=%d%n", bnd.intValue());
+        }
+        solver.log().printf("%%%%%%mzn-stat: nodes=%d%n", solver.getNodeCount());
+        solver.log().printf("%%%%%%mzn-stat: failures=%d%n", solver.getFailCount());
+        solver.log().printf("%%%%%%mzn-stat: restarts=%d%n", solver.getRestartCount());
+        solver.log().printf("%%%%%%mzn-stat: peakDepth=%d%n", solver.getMaxDepth());
+        solver.log().println("%%%mzn-stat-end");
     }
 
     public void incCstrCounter(String name) {

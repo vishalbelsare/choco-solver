@@ -1,7 +1,7 @@
 /*
  * This file is part of choco-solver, http://choco-solver.org/
  *
- * Copyright (c) 2022, IMT Atlantique. All rights reserved.
+ * Copyright (c) 2024, IMT Atlantique. All rights reserved.
  *
  * Licensed under the BSD 4-clause license.
  *
@@ -17,7 +17,7 @@ import org.chocosolver.solver.constraints.Arithmetic;
 import org.chocosolver.solver.constraints.Constraint;
 import org.chocosolver.solver.constraints.Operator;
 import org.chocosolver.solver.constraints.Propagator;
-import org.chocosolver.solver.constraints.nary.cnf.PropTrue;
+import org.chocosolver.solver.constraints.unary.BooleanConstraint;
 import org.chocosolver.solver.exception.ContradictionException;
 import org.chocosolver.solver.search.strategy.Search;
 import org.chocosolver.solver.variables.BoolVar;
@@ -490,7 +490,8 @@ public class IntLinCombTest {
         Constraint c = model.scalar(ivars, coeffs, "=", ivars[0]);
         Assert.assertEquals(c.getPropagators().length, 1);
         Propagator p = c.getPropagator(0);
-        Assert.assertTrue(p instanceof PropTrue);
+        Assert.assertTrue(p instanceof BooleanConstraint.PropBoolean);
+        Assert.assertTrue(((BooleanConstraint.PropBoolean)p).bool);
     }
 
     @Test(groups = "1s", timeOut = 60000)
@@ -908,9 +909,9 @@ public class IntLinCombTest {
         m.scalar(row, new int[]{3, 4, 5}, "=", 9).post();
         while (m.getSolver().solve()) {
             int tot = row[0].getValue() * 3 + row[1].getValue() * 4 + row[2].getValue() * 5;
-            Assert.assertTrue(tot == 9);
+            assertEquals(tot, 9);
         }
-        Assert.assertTrue(m.getSolver().getSolutionCount() == 2);
+        assertEquals(m.getSolver().getSolutionCount(), 2);
     }
 
     @Test(groups = "1s", timeOut = 60000)
@@ -1072,5 +1073,17 @@ public class IntLinCombTest {
         model.sum(bvars, "!=", 5).post();
         model.getSolver().findAllSolutions();
         Assert.assertEquals(model.getSolver().getSolutionCount(), 772);
+    }
+
+    @Test(groups = "1s", timeOut = 60000)
+    public void testWithViews() {
+        Model model = new Model();
+        IntVar start = model.intVar("start", 0, 57);
+        IntVar duration = model.intVar("duration", 6, 6);
+        IntVar end = start.getModel().offset(start, duration.getValue());
+        model.arithm(start, "+", duration, "=", end).post();
+        model.arithm(end.neg().intVar(), "+", duration, "=", start.neg().intVar()).post();
+        model.getSolver().findAllSolutions();
+        Assert.assertTrue(model.getSolver().getSolutionCount() > 0);
     }
 }

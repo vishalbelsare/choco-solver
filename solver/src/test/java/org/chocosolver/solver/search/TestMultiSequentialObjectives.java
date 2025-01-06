@@ -1,7 +1,7 @@
 /*
  * This file is part of choco-solver, http://choco-solver.org/
  *
- * Copyright (c) 2022, IMT Atlantique. All rights reserved.
+ * Copyright (c) 2024, IMT Atlantique. All rights reserved.
  *
  * Licensed under the BSD 4-clause license.
  *
@@ -93,7 +93,7 @@ public class TestMultiSequentialObjectives {
 		sv.setCard(card);
 		m.sumElements(sv,size,load).post();
         m.getSolver().setSearch(Search.setVarSearch(sv),inputOrderLBSearch(card,load));
-		Solution s = m.getSolver().findLexOptimalSolution(new IntVar[]{load,m.intMinusView(card)}, true);
+		Solution s = m.getSolver().findLexOptimalSolution(new IntVar[]{load, m.neg(card)}, true);
 		Assert.assertNotNull(s);
 
 		Assert.assertEquals(s.getIntVal(load), 9);

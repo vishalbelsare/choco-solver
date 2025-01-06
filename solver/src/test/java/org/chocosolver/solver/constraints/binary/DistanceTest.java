@@ -1,7 +1,7 @@
 /*
  * This file is part of choco-solver, http://choco-solver.org/
  *
- * Copyright (c) 2022, IMT Atlantique. All rights reserved.
+ * Copyright (c) 2024, IMT Atlantique. All rights reserved.
  *
  * Licensed under the BSD 4-clause license.
  *
@@ -43,7 +43,7 @@ public class DistanceTest {
                 IntVar Y = model.intVar("Y", 1, 10, false);
                 IntVar diff = model.intVar("X-Y", -9, 9, true);
                 model.sum(new IntVar[]{Y, diff}, "=", X).post();
-                IntVar Z = model.intAbsView(diff);
+                IntVar Z = model.abs(diff);
                 model.arithm(Z, "=", 5).post();
 
 

@@ -1,7 +1,7 @@
 /*
  * This file is part of choco-solver, http://choco-solver.org/
  *
- * Copyright (c) 2022, IMT Atlantique. All rights reserved.
+ * Copyright (c) 2024, IMT Atlantique. All rights reserved.
  *
  * Licensed under the BSD 4-clause license.
  *
@@ -31,7 +31,7 @@ import java.util.BitSet;
 
 /**
  * Filtering algorithm for the AllDiffPrec constraint introduced in the following thesis :
- * TODO: add the thesis citation when it is fixed (and/or the CP paper if accepted)
+ * Godet, A.: On the use of tasks ordering to solve scheduling problems with constraint programming. Thesis dissertation, 2021.
  *
  * @author Arthur Godet <arth.godet@gmail.com>
  */

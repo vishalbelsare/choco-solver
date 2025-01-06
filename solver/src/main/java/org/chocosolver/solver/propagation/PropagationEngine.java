@@ -1,7 +1,7 @@
 /*
  * This file is part of choco-solver, http://choco-solver.org/
  *
- * Copyright (c) 2022, IMT Atlantique. All rights reserved.
+ * Copyright (c) 2024, IMT Atlantique. All rights reserved.
  *
  * Licensed under the BSD 4-clause license.
  *
@@ -19,8 +19,10 @@ import org.chocosolver.solver.variables.Variable;
 import org.chocosolver.solver.variables.events.IEventType;
 import org.chocosolver.solver.variables.events.PropagatorEventType;
 import org.chocosolver.util.objects.queues.CircularQueue;
+import org.chocosolver.util.tools.ArrayUtils;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
@@ -64,7 +66,11 @@ public class PropagationEngine {
     /**
      * The last propagator executed
      */
-    Propagator<?> lastProp;
+    protected Propagator<?> lastProp;
+    /**
+     * The last scheduled variable
+     */
+    protected Variable lastVar;
     /**
      * One bit per queue: true if the queue is not empty.
      */
@@ -79,11 +85,11 @@ public class PropagationEngine {
     private boolean init;
     /**
      * When set to '0b00', this works as a constraint-oriented propagation engine;
-     * when set to '0b01', this workds as an hybridization between variable and constraint oriented
+     * when set to '0b01', this works as a hybridization between variable and constraint oriented
      * propagation engine.
-     * when set to '0b10', this workds as a variable- oriented propagation engine.
+     * when set to '0b10', this works as a variable-oriented propagation engine.
      */
-    private final byte hybrid;
+    private byte hybrid;
     /**
      * For dynamyc addition, avoid creating a new lambda at each call
      */
@@ -94,6 +100,11 @@ public class PropagationEngine {
             awake_queue.addLast(propagator);
         }
     };
+
+    /**
+     * A propagation insight to collect information about the propagation
+     */
+    private PropagationInsight insight = PropagationInsight.VOID;
 
     /**
      * A seven-queue propagation engine.
@@ -115,6 +126,8 @@ public class PropagationEngine {
         this.awake_queue = new CircularQueue<>(16);
         this.dynPropagators = new DynPropagators();
         this.propagators = new ArrayList<>();
+        //0b00: cstr-ori
+        //0b10: var-ori
         this.hybrid = model.getSettings().enableHybridizationOfPropagationEngine();
     }
 
@@ -136,29 +149,29 @@ public class PropagationEngine {
             }
             if (model.getSettings().sortPropagatorActivationWRTPriority()) {
                 propagators.sort(
-                    (p1, p2) -> {
-                        int p = p1.getPriority().getValue() - p2.getPriority().getValue();
-                        if (p == 0) {
-                            return p1.getNbVars() - p2.getNbVars();
-                        } else {
-                            return p;
-                        }
-                    });
+                        (p1, p2) -> {
+                            int p = p1.getPriority().getValue() - p2.getPriority().getValue();
+                            if (p == 0) {
+                                return p1.getNbVars() - p2.getNbVars();
+                            } else {
+                                return p;
+                            }
+                        });
             }
             for (int i = 0; i < propagators.size(); i++) {
                 Propagator<?> propagator = propagators.get(i);
                 if (propagator.getPriority().getValue() >= pro_queue.length) {
                     throw new SolverException(
-                            propagator+
-                            "\nThis propagator declares a priority (" +
-                            propagator.getPriority() + ") whose value (" + propagator.getPriority().getValue() +
-                            ") is greater than the maximum allowed priority (" +
-                            model.getSettings().getMaxPropagatorPriority() +
-                            ").\n" +
-                            "Either increase the maximum allowed priority (`Model model = new Model(Settings.init().setMaxPropagatorPriority(" +
-                            (propagator.getPriority().getValue() + 1) +
-                            "));`)  " +
-                            "or decrease the propagator priority.");
+                            propagator +
+                                    "\nThis propagator declares a priority (" +
+                                    propagator.getPriority() + ") whose value (" + propagator.getPriority().getValue() +
+                                    ") is greater than the maximum allowed priority (" +
+                                    model.getSettings().getMaxPropagatorPriority() +
+                                    ").\n" +
+                                    "Either increase the maximum allowed priority (`Model model = new Model(Settings.init().setMaxPropagatorPriority(" +
+                                    (propagator.getPriority().getValue() + 1) +
+                                    "));`)  " +
+                                    "or decrease the propagator priority.");
                 }
                 propagator.setPosition(i);
                 awake_queue.addLast(propagator);
@@ -177,24 +190,32 @@ public class PropagationEngine {
     }
 
     /**
-     * Launch the proapagation, ie, active propagators if necessary, then reach a fix point
+     * Launch the propagation, ie, active propagators if necessary, then reach a fix point
      *
      * @throws ContradictionException if a contradiction occurs
      */
     public void propagate() throws ContradictionException {
+        insight.clear();
         activatePropagators();
         do {
             manageModifications();
             for (int i = nextNotEmpty(); i > -1; i = nextNotEmpty()) {
                 assert !pro_queue[i].isEmpty() : "try to pop a propagator from an empty queue";
                 lastProp = pro_queue[i].pollFirst();
+                insight.cardinality(lastProp);
                 if (pro_queue[i].isEmpty()) {
                     notEmpty &= ~(1 << i);
                 }
                 // revision of the variable
                 lastProp.unschedule();
                 delayedPropagationType = 0;
-                propagateEvents();
+                try {
+                    propagateEvents();
+                    insight.update(lastProp, lastVar, false);
+                } catch (ContradictionException cex) {
+                    insight.update(lastProp, lastVar, true);
+                    throw cex;
+                }
                 if (hybrid < 0b01) {
                     manageModifications();
                 }
@@ -216,6 +237,7 @@ public class PropagationEngine {
 
     /**
      * Checks if some propagators were added or have to be propagated on backtrack
+     *
      * @throws ContradictionException if a propagation fails
      */
     private void activatePropagators() throws ContradictionException {
@@ -276,6 +298,7 @@ public class PropagationEngine {
             notEmpty = notEmpty & ~(1 << i);
         }
         lastProp = null;
+        lastVar = null;
     }
 
     /**
@@ -295,6 +318,7 @@ public class PropagationEngine {
             }
             assert found : variable + " not in scope of " + cause;
         }
+        insight.modifiy(variable);
         if (!variable.isScheduled()) {
             var_queue.addLast(variable);
             variable.schedule();
@@ -322,7 +346,7 @@ public class PropagationEngine {
     /**
      * @return the propagator Event Type's mask for delayed propagation
      */
-    int getDelayedPropagation(){
+    int getDelayedPropagation() {
         return delayedPropagationType;
     }
 
@@ -332,18 +356,26 @@ public class PropagationEngine {
      * @param propagator propagator to execute
      */
     public void onPropagatorExecution(Propagator<?> propagator) {
-        desactivatePropagator(propagator);
+        deactivatePropagator(propagator);
     }
 
     /**
      * Set the propagator as inactivated within the propagation engine
      *
-     * @param propagator propagator to desactivate
+     * @param propagator propagator to deactivate
      */
-    public void desactivatePropagator(Propagator<?> propagator) {
+    public void deactivatePropagator(Propagator<?> propagator) {
         if (propagator.reactToFineEvent()) {
             propagator.doFlush();
         }
+    }
+
+    public void setInsight(PropagationInsight insight) {
+        this.insight = insight;
+    }
+
+    public void setHybrid(byte hybrid) {
+        this.hybrid = hybrid;
     }
 
     /**
@@ -364,6 +396,7 @@ public class PropagationEngine {
         notEmpty = 0;
         init = false;
         lastProp = null;
+        lastVar = null;
     }
 
     public void ignoreModifications() {
@@ -473,12 +506,9 @@ public class PropagationEngine {
 
         private void ensureCapacity() {
             if (size >= elements.length - 1) {
-                Propagator<?>[] tmp = elements;
-                elements = new Propagator[elements.length * 3 / 2];
-                System.arraycopy(tmp, 0, elements, 0, size);
-                int[] itmp = keys;
-                keys = new int[elements.length];
-                System.arraycopy(itmp, 0, keys, 0, size);
+                int nsize = ArrayUtils.newBoundedSize(elements.length, 8);
+                elements = Arrays.copyOf(elements, nsize);
+                keys = Arrays.copyOf(keys, nsize);
             }
         }
 

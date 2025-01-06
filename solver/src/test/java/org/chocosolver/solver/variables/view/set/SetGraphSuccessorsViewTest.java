@@ -1,7 +1,7 @@
 /*
  * This file is part of choco-solver, http://choco-solver.org/
  *
- * Copyright (c) 2022, IMT Atlantique. All rights reserved.
+ * Copyright (c) 2024, IMT Atlantique. All rights reserved.
  *
  * Licensed under the BSD 4-clause license.
  *
@@ -145,7 +145,7 @@ public class SetGraphSuccessorsViewTest {
         m.member(2, s).post();
         IntVar card = s.getCard();
         m.arithm(card, "<=", 4).post();
-        Constraint nbNodes = new Constraint("NbNodes", new PropNbNodes(g, m.intOffsetView(card, 1)));
+        Constraint nbNodes = new Constraint("NbNodes", new PropNbNodes(g, m.offset(card, 1)));
         m.post(nbNodes);
         while (m.getSolver().solve()) {
             Assert.assertTrue(g.getValue().getNodes().contains(0));

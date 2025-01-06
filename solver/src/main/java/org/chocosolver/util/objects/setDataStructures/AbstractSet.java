@@ -1,13 +1,12 @@
 /*
  * This file is part of choco-solver, http://choco-solver.org/
  *
- * Copyright (c) 2022, IMT Atlantique. All rights reserved.
+ * Copyright (c) 2024, IMT Atlantique. All rights reserved.
  *
  * Licensed under the BSD 4-clause license.
  *
  * See LICENSE file in the project root for full license information.
  */
-
 /*
  * This file is part of choco-solver, http://choco-solver.org/
  *
@@ -111,9 +110,8 @@ public abstract class AbstractSet implements ISet {
     @Override
     public String toString() {
         StringBuilder st = new StringBuilder("{");
-        ISetIterator iter = newIterator();
-        while (iter.hasNext()) {
-            st.append(iter.nextInt()).append(", ");
+        for(int i : toArray()) {
+            st.append(i).append(", ");
         }
         st.append("}");
         return st.toString().replace(", }","}");

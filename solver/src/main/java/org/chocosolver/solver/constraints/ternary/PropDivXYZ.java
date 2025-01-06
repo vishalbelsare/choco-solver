@@ -1,7 +1,7 @@
 /*
  * This file is part of choco-solver, http://choco-solver.org/
  *
- * Copyright (c) 2022, IMT Atlantique. All rights reserved.
+ * Copyright (c) 2024, IMT Atlantique. All rights reserved.
  *
  * Licensed under the BSD 4-clause license.
  *
@@ -32,7 +32,7 @@ public class PropDivXYZ extends Propagator<IntVar> {
 
 
     public PropDivXYZ(IntVar x, IntVar y, IntVar z) {
-        this(x, y, z, x.getModel().intAbsView(x), x.getModel().intAbsView(y), x.getModel().intAbsView(z));
+        this(x, y, z, x.getModel().abs(x), x.getModel().abs(y), x.getModel().abs(z));
     }
 
     private PropDivXYZ(IntVar x, IntVar y, IntVar z, IntVar ax, IntVar ay, IntVar az) {

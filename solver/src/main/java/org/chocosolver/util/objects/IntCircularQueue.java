@@ -1,7 +1,7 @@
 /*
  * This file is part of choco-solver, http://choco-solver.org/
  *
- * Copyright (c) 2022, IMT Atlantique. All rights reserved.
+ * Copyright (c) 2024, IMT Atlantique. All rights reserved.
  *
  * Licensed under the BSD 4-clause license.
  *
@@ -162,5 +162,17 @@ public class IntCircularQueue  {
         head = 0;
         tail = n;
         capacity = newCapacity;
+    }
+
+    @Override
+    public String toString() {
+        final StringBuilder buf = new StringBuilder("{");
+        for (int i = 0; i < size - 1; i++) {
+            int pos = convert(head + i, 0);
+            buf.append(elementData[pos]);
+            buf.append(", ");
+        }
+        buf.append("}");
+        return buf.toString();
     }
 }

@@ -1,7 +1,7 @@
 /*
  * This file is part of choco-solver, http://choco-solver.org/
  *
- * Copyright (c) 2022, IMT Atlantique. All rights reserved.
+ * Copyright (c) 2024, IMT Atlantique. All rights reserved.
  *
  * Licensed under the BSD 4-clause license.
  *
@@ -65,12 +65,6 @@ public class GraphvizGenerator extends SearchViz {
             connected = false;
         }
         connected = true;
-    }
-
-
-    @Override
-    protected boolean connect(String label) {
-        return true;
     }
 
     @Override

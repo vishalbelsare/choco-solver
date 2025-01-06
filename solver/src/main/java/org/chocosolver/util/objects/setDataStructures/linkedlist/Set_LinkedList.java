@@ -1,7 +1,7 @@
 /*
  * This file is part of choco-solver, http://choco-solver.org/
  *
- * Copyright (c) 2022, IMT Atlantique. All rights reserved.
+ * Copyright (c) 2024, IMT Atlantique. All rights reserved.
  *
  * Licensed under the BSD 4-clause license.
  *
@@ -150,17 +150,6 @@ public class Set_LinkedList extends AbstractSet {
 	}
 
 	@Override
-	public String toString() {
-		StringBuilder st = new StringBuilder("{");
-                ISetIterator iter = newIterator();
-                while (iter.hasNext()) {
-			st.append(iter.nextInt()).append(", ");
-		}
-		st.append("}");
-		return st.toString().replace(", }","}");
-	}
-
-	@Override
 	public SetType getSetType(){
 		return SetType.LINKED_LIST;
 	}
@@ -178,10 +167,12 @@ public class Set_LinkedList extends AbstractSet {
 	@Override
 	public ISetIterator newIterator(){
 		return new ISetIterator() {
+            int r =0;
 			private IntCell nextCell = first;
 			@Override
 			public void reset() {
 				nextCell = first;
+                r++;
 			}
 			@Override
 			public void notifyRemoving(int item) {

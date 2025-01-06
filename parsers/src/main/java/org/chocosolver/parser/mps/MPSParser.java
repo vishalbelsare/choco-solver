@@ -1,7 +1,7 @@
 /*
  * This file is part of choco-parsers, http://choco-solver.org/
  *
- * Copyright (c) 2022, IMT Atlantique. All rights reserved.
+ * Copyright (c) 2024, IMT Atlantique. All rights reserved.
  *
  * Licensed under the BSD 4-clause license.
  *
@@ -11,9 +11,6 @@ package org.chocosolver.parser.mps;
 
 import org.chocosolver.parser.ParserException;
 import org.chocosolver.solver.Model;
-import org.chocosolver.solver.constraints.Constraint;
-import org.chocosolver.solver.constraints.Operator;
-import org.chocosolver.solver.constraints.real.PropScalarMixed;
 import org.chocosolver.solver.variables.IntVar;
 import org.chocosolver.solver.variables.RealVar;
 import org.chocosolver.solver.variables.Variable;
@@ -294,11 +291,7 @@ public class MPSParser {
                 && !line.startsWith(TAG_ENDATA)) {
             values = Arrays.stream(line.split(" ")).filter(v -> v.length() > 0).toArray(String[]::new);
             String var = values[2];
-            Number[] bounds = varsDom.get(var);
-            if (bounds == null) {
-                bounds = new Number[]{0, POS_INF};
-                varsDom.put(var, bounds);
-            }
+            Number[] bounds = varsDom.computeIfAbsent(var, k -> new Number[]{0, POS_INF});
             String val = values.length > 3 ? values[3] : "--";
             switch (values[0]) {
                 case "LO":
@@ -431,44 +424,60 @@ public class MPSParser {
 
     private void postIntEquation(Model model, List<String> vars, List<Number> coefs, String op,
                                  Number rhs, Number rng, boolean noeq) {
-        switch (op) {
-            case "=":
-                if (rng == null) {
-                    // only made of int var, and all coeffs are int
-                    if(noeq) {
-                        model.scalar(vars.stream().map(s -> (IntVar) decVars.get(s)).toArray(IntVar[]::new),
-                                coefs.stream().mapToInt(Number::intValue).toArray(), "<=", rhs.intValue()
-                        ).post();
-                        model.scalar(vars.stream().map(s -> (IntVar) decVars.get(s)).toArray(IntVar[]::new),
-                                coefs.stream().mapToInt(Number::intValue).toArray(), ">=", rhs.intValue()
-                        ).post();
-                    }else{
-                        model.scalar(vars.stream().map(s -> (IntVar) decVars.get(s)).toArray(IntVar[]::new),
-                                coefs.stream().mapToInt(Number::intValue).toArray(), op, rhs.intValue()
-                        ).post();
-                    }
-                } else {
-                    if (rng.intValue() > 0) {
-                        model.scalar(vars.stream().map(s -> (IntVar) decVars.get(s)).toArray(IntVar[]::new),
-                                coefs.stream().mapToInt(Number::intValue).toArray(), ">=", rhs.intValue()
-                        ).post();
-                        model.scalar(vars.stream().map(s -> (IntVar) decVars.get(s)).toArray(IntVar[]::new),
-                                coefs.stream().mapToInt(Number::intValue).toArray(), "<=",
-                                rhs.intValue() + rng.intValue()
-                        ).post();
-                    } else {
-                        model.scalar(vars.stream().map(s -> (IntVar) decVars.get(s)).toArray(IntVar[]::new),
-                                coefs.stream().mapToInt(Number::intValue).toArray(), "<=", rhs.intValue()
-                        ).post();
-                        model.scalar(vars.stream().map(s -> (IntVar) decVars.get(s)).toArray(IntVar[]::new),
-                                coefs.stream().mapToInt(Number::intValue).toArray(), ">=",
-                                rhs.intValue() + rng.intValue()
-                        ).post();
-                    }
-                }
-                break;
-            default:
+        if ("=".equals(op)) {
+            if (rng == null) {
                 // only made of int var, and all coeffs are int
+                if (noeq) {
+                    model.scalar(vars.stream().map(s -> (IntVar) decVars.get(s)).toArray(IntVar[]::new),
+                            coefs.stream().mapToInt(Number::intValue).toArray(), "<=", rhs.intValue()
+                    ).post();
+                    model.scalar(vars.stream().map(s -> (IntVar) decVars.get(s)).toArray(IntVar[]::new),
+                            coefs.stream().mapToInt(Number::intValue).toArray(), ">=", rhs.intValue()
+                    ).post();
+                } else {
+                    model.scalar(vars.stream().map(s -> (IntVar) decVars.get(s)).toArray(IntVar[]::new),
+                            coefs.stream().mapToInt(Number::intValue).toArray(), op, rhs.intValue()
+                    ).post();
+                }
+            } else {
+                if (rng.intValue() > 0) {
+                    model.scalar(vars.stream().map(s -> (IntVar) decVars.get(s)).toArray(IntVar[]::new),
+                            coefs.stream().mapToInt(Number::intValue).toArray(), ">=", rhs.intValue()
+                    ).post();
+                    model.scalar(vars.stream().map(s -> (IntVar) decVars.get(s)).toArray(IntVar[]::new),
+                            coefs.stream().mapToInt(Number::intValue).toArray(), "<=",
+                            rhs.intValue() + rng.intValue()
+                    ).post();
+                } else {
+                    model.scalar(vars.stream().map(s -> (IntVar) decVars.get(s)).toArray(IntVar[]::new),
+                            coefs.stream().mapToInt(Number::intValue).toArray(), "<=", rhs.intValue()
+                    ).post();
+                    model.scalar(vars.stream().map(s -> (IntVar) decVars.get(s)).toArray(IntVar[]::new),
+                            coefs.stream().mapToInt(Number::intValue).toArray(), ">=",
+                            rhs.intValue() + rng.intValue()
+                    ).post();
+                }
+            }
+        } else {// only made of int var, and all coeffs are int
+            model.scalar(
+                    vars.stream()
+                            .map(s -> (IntVar) decVars.get(s))
+                            .toArray(IntVar[]::new),
+                    coefs.stream()
+                            .mapToInt(Number::intValue)
+                            .toArray(),
+                    op,
+                    rhs.intValue()
+            ).post();
+            if (rng != null) {
+                String nop = ">=";
+                int b = rhs.intValue();
+                if (op.equals(">=")) {
+                    nop = "<=";
+                    b += Math.abs(rng.intValue());
+                } else {
+                    b -= Math.abs(rng.intValue());
+                }
                 model.scalar(
                         vars.stream()
                                 .map(s -> (IntVar) decVars.get(s))
@@ -476,31 +485,10 @@ public class MPSParser {
                         coefs.stream()
                                 .mapToInt(Number::intValue)
                                 .toArray(),
-                        op,
-                        rhs.intValue()
+                        nop,
+                        b
                 ).post();
-                if (rng != null) {
-                    String nop = ">=";
-                    int b = rhs.intValue();
-                    if (op.equals(">=")) {
-                        nop = "<=";
-                        b += Math.abs(rng.intValue());
-                    } else {
-                        b -= Math.abs(rng.intValue());
-                    }
-                    model.scalar(
-                            vars.stream()
-                                    .map(s -> (IntVar) decVars.get(s))
-                                    .toArray(IntVar[]::new),
-                            coefs.stream()
-                                    .mapToInt(Number::intValue)
-                                    .toArray(),
-                            nop,
-                            b
-                    ).post();
-                }
-
-                break;
+            }
         }
     }
 
@@ -546,74 +534,65 @@ public class MPSParser {
         return true;
     }
 
-    private static Constraint mixedScalar(Variable[] vars, double[] coefs, String op, double b) {
-        return new Constraint("MIXEDSCALAR",
-                new PropScalarMixed(vars, coefs, Operator.get(op), b));
-    }
-
 
     private void postEquation(Model model, List<String> vars, List<Number> coefs, String op,
                               Number rhs, Number rng) {
-        switch (op) {
-            case "=":
-                if (rng == null) {
-                    // only made of int var, and all coeffs are int
-                    mixedScalar(vars.stream().map(s -> decVars.get(s)).toArray(Variable[]::new),
-                            coefs.stream().mapToDouble(Number::doubleValue).toArray(), op, rhs.doubleValue()
+        if ("=".equals(op)) {
+            if (rng == null) {
+                // only made of int var, and all coeffs are int
+                model.scalar(vars.stream().map(s -> decVars.get(s)).toArray(Variable[]::new),
+                        coefs.stream().mapToDouble(Number::doubleValue).toArray(), op, rhs.doubleValue()
+                ).post();
+            } else {
+                if (rng.intValue() > 0) {
+                    model.scalar(vars.stream().map(s -> decVars.get(s)).toArray(Variable[]::new),
+                            coefs.stream().mapToDouble(Number::doubleValue).toArray(), ">=", rhs.doubleValue()
+                    ).post();
+                    model.scalar(vars.stream().map(s -> decVars.get(s)).toArray(Variable[]::new),
+                            coefs.stream().mapToDouble(Number::doubleValue).toArray(), "<=",
+                            rhs.doubleValue() + rng.doubleValue()
                     ).post();
                 } else {
-                    if (rng.intValue() > 0) {
-                        mixedScalar(vars.stream().map(s -> decVars.get(s)).toArray(Variable[]::new),
-                                coefs.stream().mapToDouble(Number::doubleValue).toArray(), ">=", rhs.doubleValue()
-                        ).post();
-                        mixedScalar(vars.stream().map(s -> decVars.get(s)).toArray(Variable[]::new),
-                                coefs.stream().mapToDouble(Number::doubleValue).toArray(), "<=",
-                                rhs.doubleValue() + rng.doubleValue()
-                        ).post();
-                    } else {
-                        mixedScalar(vars.stream().map(s -> decVars.get(s)).toArray(Variable[]::new),
-                                coefs.stream().mapToDouble(Number::doubleValue).toArray(), "<=", rhs.doubleValue()
-                        ).post();
-                        mixedScalar(vars.stream().map(s -> decVars.get(s)).toArray(Variable[]::new),
-                                coefs.stream().mapToDouble(Number::doubleValue).toArray(), ">=",
-                                rhs.doubleValue() + rng.doubleValue()
-                        ).post();
-                    }
+                    model.scalar(vars.stream().map(s -> decVars.get(s)).toArray(Variable[]::new),
+                            coefs.stream().mapToDouble(Number::doubleValue).toArray(), "<=", rhs.doubleValue()
+                    ).post();
+                    model.scalar(vars.stream().map(s -> decVars.get(s)).toArray(Variable[]::new),
+                            coefs.stream().mapToDouble(Number::doubleValue).toArray(), ">=",
+                            rhs.doubleValue() + rng.doubleValue()
+                    ).post();
                 }
-                break;
-            default:
-                // only made of int var, and all coeffs are int
-                mixedScalar(
+            }
+        } else {// only made of int var, and all coeffs are int
+            model.scalar(
+                    vars.stream()
+                            .map(s -> decVars.get(s))
+                            .toArray(Variable[]::new),
+                    coefs.stream()
+                            .mapToDouble(Number::doubleValue)
+                            .toArray(),
+                    op,
+                    rhs.doubleValue()
+            ).post();
+            if (rng != null) {
+                String nop = ">=";
+                double b = rhs.doubleValue();
+                if (op.equals(">=")) {
+                    nop = "<=";
+                    b += Math.abs(rng.doubleValue());
+                } else {
+                    b -= Math.abs(rng.doubleValue());
+                }
+                model.scalar(
                         vars.stream()
                                 .map(s -> decVars.get(s))
                                 .toArray(Variable[]::new),
                         coefs.stream()
                                 .mapToDouble(Number::doubleValue)
                                 .toArray(),
-                        op,
-                        rhs.doubleValue()
+                        nop,
+                        b
                 ).post();
-                if (rng != null) {
-                    String nop = ">=";
-                    double b = rhs.doubleValue();
-                    if (op.equals(">=")) {
-                        nop = "<=";
-                        b += Math.abs(rng.doubleValue());
-                    } else {
-                        b -= Math.abs(rng.doubleValue());
-                    }
-                    mixedScalar(
-                            vars.stream()
-                                    .map(s -> decVars.get(s))
-                                    .toArray(Variable[]::new),
-                            coefs.stream()
-                                    .mapToDouble(Number::doubleValue)
-                                    .toArray(),
-                            nop,
-                            b
-                    ).post();
-                }
-                break;
+            }
         }
     }
 
@@ -629,7 +608,7 @@ public class MPSParser {
             model.setObjective(maximize, objective);
             Variable[] svars = vars.stream().map(s -> decVars.get(s)).toArray(Variable[]::new);
             coefs.add(-1d);
-            mixedScalar(
+           model.scalar(
                     ArrayUtils.append(svars, new RealVar[]{objective}),
                     coefs.stream().mapToDouble(Number::doubleValue)
                             .toArray(),
@@ -647,49 +626,46 @@ public class MPSParser {
             if (j > 0) fct.append('+');
             fct.append('{').append(j).append('}').append("*").append(coefs.get(j).doubleValue());
         }
-        switch (op) {
-            case "=":
-                if (rng == null) {
-                    fct.append(op).append(rhs.doubleValue());
-                    model.realIbexGenericConstraint(fct.toString(), vars.stream()
-                            .map(s -> decVars.get(s))
-                            .toArray(Variable[]::new)).post();
-                } else {
-                    if (rng.intValue() > 0) {
-                        model.realIbexGenericConstraint(fct + ">=" + rhs.doubleValue(),
-                                vars.stream().map(s -> decVars.get(s)).toArray(Variable[]::new)).post();
-                        model.realIbexGenericConstraint(fct + "<=" +
-                                        rhs.doubleValue() + rng.doubleValue(),
-                                vars.stream().map(s -> decVars.get(s)).toArray(Variable[]::new)).post();
-                    } else {
-                        model.realIbexGenericConstraint(fct + "<=" + rhs.doubleValue(),
-                                vars.stream().map(s -> decVars.get(s)).toArray(Variable[]::new)).post();
-                        model.realIbexGenericConstraint(fct + ">=" +
-                                        rhs.doubleValue() + rng.doubleValue(),
-                                vars.stream().map(s -> decVars.get(s)).toArray(Variable[]::new)).post();
-                    }
-                }
-                break;
-            default:
+        if ("=".equals(op)) {
+            if (rng == null) {
                 fct.append(op).append(rhs.doubleValue());
                 model.realIbexGenericConstraint(fct.toString(), vars.stream()
                         .map(s -> decVars.get(s))
                         .toArray(Variable[]::new)).post();
-                if (rng != null) {
-                    String nop = ">=";
-                    double b = rhs.doubleValue();
-                    if (op.equals(">=")) {
-                        nop = "<=";
-                        b += Math.abs(rng.doubleValue());
-                    } else {
-                        b -= Math.abs(rng.doubleValue());
-                    }
-                    fct.append(nop).append(b);
-                    model.realIbexGenericConstraint(fct.toString(), vars.stream()
-                            .map(s -> decVars.get(s))
-                            .toArray(Variable[]::new)).post();
+            } else {
+                if (rng.intValue() > 0) {
+                    model.realIbexGenericConstraint(fct + ">=" + rhs.doubleValue(),
+                            vars.stream().map(s -> decVars.get(s)).toArray(Variable[]::new)).post();
+                    model.realIbexGenericConstraint(fct + "<=" +
+                                    rhs.doubleValue() + rng.doubleValue(),
+                            vars.stream().map(s -> decVars.get(s)).toArray(Variable[]::new)).post();
+                } else {
+                    model.realIbexGenericConstraint(fct + "<=" + rhs.doubleValue(),
+                            vars.stream().map(s -> decVars.get(s)).toArray(Variable[]::new)).post();
+                    model.realIbexGenericConstraint(fct + ">=" +
+                                    rhs.doubleValue() + rng.doubleValue(),
+                            vars.stream().map(s -> decVars.get(s)).toArray(Variable[]::new)).post();
                 }
-                break;
+            }
+        } else {
+            fct.append(op).append(rhs.doubleValue());
+            model.realIbexGenericConstraint(fct.toString(), vars.stream()
+                    .map(s -> decVars.get(s))
+                    .toArray(Variable[]::new)).post();
+            if (rng != null) {
+                String nop = ">=";
+                double b = rhs.doubleValue();
+                if (op.equals(">=")) {
+                    nop = "<=";
+                    b += Math.abs(rng.doubleValue());
+                } else {
+                    b -= Math.abs(rng.doubleValue());
+                }
+                fct.append(nop).append(b);
+                model.realIbexGenericConstraint(fct.toString(), vars.stream()
+                        .map(s -> decVars.get(s))
+                        .toArray(Variable[]::new)).post();
+            }
         }
 
     }
@@ -729,7 +705,7 @@ public class MPSParser {
             } else {
                 st.append(var.asIntVar().getLB());
             }
-            st.append('\n');
+            if (i < allvars.size() - 1) st.append('\n');
         }
         return st.toString();
     }

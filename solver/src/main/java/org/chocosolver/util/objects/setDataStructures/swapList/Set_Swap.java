@@ -1,7 +1,7 @@
 /*
  * This file is part of choco-solver, http://choco-solver.org/
  *
- * Copyright (c) 2022, IMT Atlantique. All rights reserved.
+ * Copyright (c) 2024, IMT Atlantique. All rights reserved.
  *
  * Licensed under the BSD 4-clause license.
  *
@@ -171,17 +171,6 @@ public class Set_Swap extends AbstractSet implements ISet.WithOffset {
 			}
 		}
 		return max;
-	}
-
-	@Override
-	public String toString() {
-		StringBuilder st = new StringBuilder("{");
-                ISetIterator iter = newIterator();
-                while (iter.hasNext()) {
-			st.append(iter.nextInt()).append(", ");
-		}
-		st.append("}");
-		return st.toString().replace(", }","}");
 	}
 
 	@Override

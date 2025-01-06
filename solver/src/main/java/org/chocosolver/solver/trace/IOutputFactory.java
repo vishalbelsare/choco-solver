@@ -1,7 +1,7 @@
 /*
  * This file is part of choco-solver, http://choco-solver.org/
  *
- * Copyright (c) 2022, IMT Atlantique. All rights reserved.
+ * Copyright (c) 2024, IMT Atlantique. All rights reserved.
  *
  * Licensed under the BSD 4-clause license.
  *
@@ -13,15 +13,13 @@ import org.chocosolver.solver.ISelf;
 import org.chocosolver.solver.Solution;
 import org.chocosolver.solver.Solver;
 import org.chocosolver.solver.propagation.PropagationEngineObserver;
-import org.chocosolver.solver.propagation.PropagationProfiler;
 import org.chocosolver.solver.propagation.PropagationObserver;
+import org.chocosolver.solver.propagation.PropagationProfiler;
 import org.chocosolver.solver.search.loop.monitors.*;
-import org.chocosolver.solver.trace.frames.StatisticsPanel;
 import org.chocosolver.solver.variables.IntVar;
 import org.chocosolver.solver.variables.Variable;
 import org.chocosolver.util.tools.StringUtils;
 
-import javax.swing.*;
 import java.io.Closeable;
 import java.io.File;
 import java.io.PrintWriter;
@@ -42,8 +40,8 @@ public interface IOutputFactory extends ISelf<Solver> {
      * Default welcome message
      */
     String WELCOME_MESSAGE =
-        "** Choco 4.10.8 (2022-01) : Constraint Programming Solver, Copyright (c) 2010-2022";
-    
+        "** Choco 4.10.17 (2024-09) : Constraint Programming Solver, Copyright (c) 2010-2024";
+
     /**
      * Print the version message.
      */
@@ -183,6 +181,18 @@ public interface IOutputFactory extends ISelf<Solver> {
     }
 
     /**
+     * Plug a search monitor which outputs a message on each solution, based on the variables
+     * given in parameters.
+     * <p>
+     * Recommended usage: to be called before the resolution step.
+     *
+     * @see IOutputFactory.DefaultSolutionMessage
+     */
+    default void showSolutions(Variable... variables) {
+        showSolutions(new DefaultSolutionMessage(ref(), variables));
+    }
+
+    /**
      * Plug a search monitor which outputs {@code message} on each decision.
      * <p>
      * Recommended usage: to be called before the resolution step.
@@ -208,7 +218,42 @@ public interface IOutputFactory extends ISelf<Solver> {
      * @see IOutputFactory.DefaultSolutionMessage
      */
     default void showDecisions() {
-        showDecisions(new DefaultDecisionMessage(ref()));
+        showDecisions(120);
+    }
+
+    /**
+     * Plug a search monitor which outputs a message on each decision.
+     * <p>
+     * Recommended usage: to be called before the resolution step.
+     *
+     * @param nChars maximum number of characters to output
+     *
+     * @see IOutputFactory.DefaultSolutionMessage
+     */
+    default void showDecisions(int nChars) {
+        showDecisions(new DefaultDecisionMessage(ref(), nChars));
+    }
+
+    /**
+     * Plug a search monitor which outputs {@code message} on each restart.
+     *
+     * <p>
+     * Recommended usage: to be called before the resolution step.
+     *
+     * @param message the message to print.
+     */
+    default void showRestarts(final IMessage message) {
+        ref().plugMonitor(new IMonitorRestart() {
+            @Override
+            public void afterRestart() {
+                ref().log().printf("RUNS %d ", ref().getRestartCount());
+                ref().log().printf(" // %s \n", message.print());
+            }
+        });
+    }
+
+    default void showRestarts() {
+        showRestarts(() -> ref().toOneLineString());
     }
 
     /**
@@ -259,42 +304,24 @@ public interface IOutputFactory extends ISelf<Solver> {
     }
 
     /**
-     * Create and show a simple dashboard that render resolution statistics every 'refresh' milliseconds.
-     * Note that a low refresh rate will slow down the entire process.
-     *
-     * @param refresh frequency rate, in milliseconds.
+     * @Deprecated use {@link #observeSolving()} instead
      */
+    @Deprecated
     default void showDashboard(long refresh) {
-        //Make sure we have nice window decorations.
-        JFrame.setDefaultLookAndFeelDecorated(true);
-
-        //Create and set up the window.
-        JFrame frame = new JFrame("Dashboard");
-        frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
-
-
-        //Create and set up the content pane.
-        JComponent newContentPane = new StatisticsPanel(ref(), refresh, frame);
-        newContentPane.setOpaque(true); //content panes must be opaque
-        frame.setContentPane(newContentPane);
-
-        //Display the window.
-        frame.pack();
-//        frame.setLocationRelativeTo(null);
-        frame.setVisible(true);
     }
 
     /**
-      * <p>
-      * Plug a propagation observer.
-      * It observes activities of propagators and modifications of variables.
-      * Note, that this may impact the resolution statistics, since very fine events recording is done.
-      * </p>
-     * @see #profilePropagation() 
-      */
-     default void observePropagation(PropagationObserver po){
-         ref().setEngine(new PropagationEngineObserver(ref().getModel(), po));
-     }
+     * <p>
+     * Plug a propagation observer.
+     * It observes activities of propagators and modifications of variables.
+     * Note, that this may impact the resolution statistics, since very fine events recording is done.
+     * </p>
+     *
+     * @see #profilePropagation()
+     */
+    default void observePropagation(PropagationObserver po) {
+        ref().setEngine(new PropagationEngineObserver(ref().getModel(), po));
+    }
 
     /**
      * <p>
@@ -313,12 +340,40 @@ public interface IOutputFactory extends ISelf<Solver> {
      * s.findSolution();
      * profiler.writeTo(new File("profiling.txt"));
      * }</pre>
+     *
      * @return a propagation profiler
      */
-    default PropagationProfiler profilePropagation(){
+    default PropagationProfiler profilePropagation() {
         PropagationProfiler po = new PropagationProfiler(ref().getModel());
         ref().observePropagation(po);
         return po;
+    }
+
+    /**
+     * Create and return a {@link SolvingStatisticsFlow} object to observe solving statistics.
+     * <p>
+     * Then, any call to {@link SolvingStatisticsFlow#toJSON()} will return a JSON String with the updated statistics.
+     * <br/>
+     * An example of usage is:
+     *  <pre>
+     *      Solver solver = model.getSolver();
+     *      Thread printer = new Thread(() -> {
+     *          try {
+     *              while (true) {
+     *                  Thread.sleep(5);
+     *                  System.out.printf("%s\n", SolvingStatisticsFlow.toJSON(solver));
+     *              }
+     *          } catch (InterruptedException e) {}
+     *      });
+     *      printer.start();
+     *      while(solver.solve());
+     *      printer.interrupt();
+     *  </pre>
+     *
+     * @return a {@link SolvingStatisticsFlow} object to observe solving statistics.
+     */
+    default SolvingStatisticsFlow observeSolving() {
+        return new SolvingStatisticsFlow(ref());
     }
 
     /**
@@ -424,25 +479,41 @@ public interface IOutputFactory extends ISelf<Solver> {
          */
         private final Solver solver;
 
+        private Variable[] vars;
+
         /**
          * Create a solution message
          *
          * @param solver solver to output
          */
         public DefaultSolutionMessage(Solver solver) {
+            this(solver, null);
+        }
+
+        /**
+         * Create a solution message
+         *
+         * @param solver solver to output
+         * @param vars   variables to output
+         */
+        public DefaultSolutionMessage(Solver solver, Variable[] vars) {
             this.solver = solver;
+            this.vars = vars;
         }
 
         @Override
         public String print() {
+            if (vars == null) {
+                vars = solver.getSearch().getVariables();
+            }
             return String.format("- Solution #%s found. %s \n\t%s.",
                     solver.getSolutionCount(),
                     solver.getMeasures().toOneLineString(),
-                    print(solver.getSearch().getVariables())
+                    printVars()
             );
         }
 
-        private String print(Variable[] vars) {
+        private String printVars() {
             StringBuilder s = new StringBuilder(32);
             for (Variable v : vars) {
                 s.append(v).append(' ');
@@ -461,19 +532,21 @@ public interface IOutputFactory extends ISelf<Solver> {
          * Solver to output
          */
         private final Solver solver;
+        private final int limit;
 
         /**
          * Create a decision message
          *
          * @param solver solver to output
+         * @param nChars maximum number of characters to output
          */
-        public DefaultDecisionMessage(Solver solver) {
+        public DefaultDecisionMessage(Solver solver, int nChars) {
             this.solver = solver;
+            this.limit = nChars;
         }
 
         @Override
         public String print() {
-            int limit = 120;
             Variable[] vars = solver.getSearch().getVariables();
             StringBuilder s = new StringBuilder(32);
             for (int i = 0; i < vars.length && s.length() < limit; i++) {

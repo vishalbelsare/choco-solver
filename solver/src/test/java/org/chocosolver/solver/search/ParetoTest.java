@@ -1,7 +1,7 @@
 /*
  * This file is part of choco-solver, http://choco-solver.org/
  *
- * Copyright (c) 2022, IMT Atlantique. All rights reserved.
+ * Copyright (c) 2024, IMT Atlantique. All rights reserved.
  *
  * Licensed under the BSD 4-clause license.
  *
@@ -150,7 +150,7 @@ public class ParetoTest {
         m.scalar(ArrayUtils.flatten(dist), ArrayUtils.flatten(w2), "=", obj2).post();
 
         m.getSolver().setSearch(Search.inputOrderLBSearch(x));
-        List<Solution> front = m.getSolver().findParetoFront(new IntVar[]{m.intMinusView(obj1), m.intMinusView(obj2)}, Model.MAXIMIZE);
+        List<Solution> front = m.getSolver().findParetoFront(new IntVar[]{m.neg(obj1), m.neg(obj2)}, Model.MAXIMIZE);
         Assert.assertEquals(26, front.size());
         Assert.assertEquals(233, m.getSolver().getSolutionCount());
         Assert.assertEquals(95208, m.getSolver().getNodeCount());

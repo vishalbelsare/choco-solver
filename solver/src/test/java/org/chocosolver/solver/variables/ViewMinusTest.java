@@ -1,7 +1,7 @@
 /*
  * This file is part of choco-solver, http://choco-solver.org/
  *
- * Copyright (c) 2022, IMT Atlantique. All rights reserved.
+ * Copyright (c) 2024, IMT Atlantique. All rights reserved.
  *
  * Licensed under the BSD 4-clause license.
  *
@@ -37,7 +37,7 @@ public class ViewMinusTest {
         Model model = new Model();
 
         IntVar X = model.intVar("X", 1, 10, false);
-        IntVar Y = model.intMinusView(X);
+        IntVar Y = model.neg(X);
 
         try {
 			if(!model.getSettings().enableViews())
@@ -97,6 +97,15 @@ public class ViewMinusTest {
         }
     }
 
+    @Test(groups="1s", timeOut=60000, expectedExceptions = ContradictionException.class)
+    public void testUpdateInfeasBounds() throws Exception {
+        Model model = new Model();
+
+        IntVar X = model.intVar("X", 1, 10, false);
+        IntVar var = model.neg(X);
+        var.updateBounds(1,-1, Cause.Null);
+    }
+
     @Test(groups="10s", timeOut=60000)
     public void test2() {
         Random random = new Random();
@@ -114,7 +123,7 @@ public class ViewMinusTest {
             {
                 IntVar[] xs = new IntVar[2];
                 xs[0] = model.intVar("x", 1, 15, true);
-                xs[1] = model.intMinusView(xs[0]);
+                xs[1] = model.neg(xs[0]);
                 model.sum(xs, "=", 0).post();
                 model.getSolver().setSearch(randomSearch(xs, seed));
             }
@@ -142,7 +151,7 @@ public class ViewMinusTest {
             {
                 IntVar[] xs = new IntVar[2];
                 xs[0] = model.intVar("x", 1, 15, false);
-                xs[1] = model.intMinusView(xs[0]);
+                xs[1] = model.neg(xs[0]);
                 model.sum(xs, "=", 0).post();
                 model.getSolver().setSearch(randomSearch(xs, seed));
             }
@@ -161,7 +170,7 @@ public class ViewMinusTest {
             Model model = new Model();
             int[][] domains = DomainBuilder.buildFullDomains(1, -5, 5, random, random.nextDouble(), random.nextBoolean());
             IntVar o = model.intVar("o", domains[0][0], domains[0][domains[0].length - 1], true);
-            IntVar v = model.intMinusView(o);
+            IntVar v = model.neg(o);
             DisposableValueIterator vit = v.getValueIterator(true);
             while (vit.hasNext()) {
                 Assert.assertTrue(o.contains(-vit.next()));
@@ -195,7 +204,7 @@ public class ViewMinusTest {
             Model model = new Model();
             int[][] domains = DomainBuilder.buildFullDomains(1, -5, 5, random, random.nextDouble(), random.nextBoolean());
             IntVar o = model.intVar("o", domains[0]);
-            IntVar v = model.intMinusView(o);
+            IntVar v = model.neg(o);
 			if(!model.getSettings().enableViews()){
 				try {
 					model.getSolver().propagate();

@@ -1,7 +1,7 @@
 /*
  * This file is part of choco-solver, http://choco-solver.org/
  *
- * Copyright (c) 2022, IMT Atlantique. All rights reserved.
+ * Copyright (c) 2024, IMT Atlantique. All rights reserved.
  *
  * Licensed under the BSD 4-clause license.
  *
@@ -82,19 +82,12 @@ public final class PropEqualXY_C extends Propagator<IntVar> {
             idms[0].startMonitoring();
             idms[1].startMonitoring();
         }
-        if (x.isInstantiated()) {
-            assert (y.isInstantiated());
-            setPassive();
-        }
     }
 
     @Override
     public void propagate(int varIdx, int mask) throws ContradictionException {
         updateBounds();
-        if (x.isInstantiated()) {
-            assert (y.isInstantiated());
-            setPassive();
-        } else if (bothEnumerated) {
+        if (bothEnumerated) {
             indexToFilter = 1 - varIdx;
             idms[varIdx].forEachRemVal(rem_proc);
         }

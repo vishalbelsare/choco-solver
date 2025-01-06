@@ -1,7 +1,7 @@
 /*
  * This file is part of choco-solver, http://choco-solver.org/
  *
- * Copyright (c) 2022, IMT Atlantique. All rights reserved.
+ * Copyright (c) 2024, IMT Atlantique. All rights reserved.
  *
  * Licensed under the BSD 4-clause license.
  *
@@ -9,10 +9,12 @@
  */
 package org.chocosolver.solver.constraints.nary;
 
-import org.chocosolver.solver.Settings;
 import org.chocosolver.solver.Model;
+import org.chocosolver.solver.Settings;
 import org.chocosolver.solver.Solver;
+import org.chocosolver.solver.constraints.Constraint;
 import org.chocosolver.solver.exception.SolverException;
+import org.chocosolver.solver.variables.BoolVar;
 import org.chocosolver.solver.variables.IntVar;
 import org.chocosolver.util.ESat;
 import org.testng.Assert;
@@ -91,8 +93,8 @@ public class InverseChannelingTest {
     private IntVar makeVariable(Model model, int lb, int ub, boolean bounded) {
         IntVar var = model.intVar(lb, ub, bounded);
         if(model.getSettings().enableViews()) {
-            IntVar first = model.intOffsetView(var, 1);
-            return model.intOffsetView(first, -1);
+            IntVar first = model.offset(var, 1);
+            return model.offset(first, -1);
         } else {
             return var;
         }
@@ -103,11 +105,11 @@ public class InverseChannelingTest {
         if(model.getSettings().enableViews()) {
             IntVar[] view1 = new IntVar[n];
             for (int i = 0; i < n; i++) {
-                view1[i] = model.intOffsetView(var[i], 1);
+                view1[i] = model.offset(var[i], 1);
             }
             IntVar[] view2 = new IntVar[n];
             for (int i = 0; i < n; i++) {
-                view2[i] = model.intOffsetView(view1[i], -1);
+                view2[i] = model.offset(view1[i], -1);
             }
             return view2;
         } else {
@@ -123,5 +125,31 @@ public class InverseChannelingTest {
         Solver solver = model.getSolver();
         solver.findAllSolutions();
         Assert.assertEquals(10, solver.getSolutionCount());
+    }
+
+    @Test(groups = "1s")
+    public void test01(){
+        Model model = new Model();
+        IntVar[] fwd = model.intVarArray(2, -2, 2);
+        IntVar[] rev = model.intVarArray(2, -2, 2);
+        Constraint cons = model.inverseChanneling(fwd, rev);
+        BoolVar bv = cons.reify();
+        model.arithm(bv, "=", 0).post();
+        Solver solver = model.getSolver();
+        while(solver.solve());
+        Assert.assertEquals(solver.getSolutionCount(), 623);
+    }
+
+    @Test(groups = "1s")
+    public void test02() {
+        Model model = new Model();
+        IntVar[] fwd = model.intVarArray(2, -2, 2);
+        IntVar[] rev = model.intVarArray(2, -2, 2);
+        Constraint cons = model.inverseChanneling(fwd, rev);
+        BoolVar bv = cons.reify();
+        model.arithm(bv, "=", 1).post();
+        Solver solver = model.getSolver();
+        while (solver.solve()) ;
+        Assert.assertEquals(solver.getSolutionCount(), 2);
     }
 }

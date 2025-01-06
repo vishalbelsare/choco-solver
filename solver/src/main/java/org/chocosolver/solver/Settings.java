@@ -1,7 +1,7 @@
 /*
  * This file is part of choco-solver, http://choco-solver.org/
  *
- * Copyright (c) 2022, IMT Atlantique. All rights reserved.
+ * Copyright (c) 2024, IMT Atlantique. All rights reserved.
  *
  * Licensed under the BSD 4-clause license.
  *
@@ -13,11 +13,13 @@ import org.chocosolver.memory.IEnvironment;
 import org.chocosolver.solver.constraints.ISatFactory;
 import org.chocosolver.solver.constraints.PropagatorPriority;
 import org.chocosolver.solver.constraints.real.Ibex;
+import org.chocosolver.solver.search.strategy.BlackBoxConfigurator;
 import org.chocosolver.solver.search.strategy.Search;
-import org.chocosolver.solver.search.strategy.strategy.AbstractStrategy;
 import org.chocosolver.util.ESat;
 
 import java.util.HashMap;
+import java.util.Optional;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.IntPredicate;
 import java.util.function.Predicate;
@@ -48,11 +50,13 @@ public class Settings {
 
     private int maxTupleSizeForSubstitution = 10_000;
 
+    private int timeLimitForPreprocessing = -1;
+
     private boolean sortPropagatorActivationWRTPriority = true;
 
     private int maxPropagatorPriority = PropagatorPriority.VERY_SLOW.getValue();
 
-    private Function<Model, AbstractStrategy<?>> defaultSearch = Search::defaultSearch;
+    private Consumer<Model> defaultSearch = m -> BlackBoxConfigurator.init().make(m);
 
     private boolean warnUser = false;
 
@@ -287,6 +291,27 @@ public class Settings {
         return this;
     }
 
+    /**
+     * @return the time allocated for the preprocessing
+     */
+    public long getTimeLimitForPreprocessing() {
+        return timeLimitForPreprocessing;
+    }
+
+    /**
+     * Set the time allocated for the preprocessing step.
+     * If the time limit is reached, the preprocessing is stopped and the resolution starts.
+     * Set a negative value to disable the time limit.
+     *
+     * @param timeLimitForPreprocessing time limit for Strong Arc Consistency (in milliseconds)
+     * @return the current instance
+     * @see org.chocosolver.solver.Solver#preprocessing(long)
+     */
+    public Settings setTimeLimitForPreprocessing(int timeLimitForPreprocessing) {
+        this.timeLimitForPreprocessing = timeLimitForPreprocessing;
+        return this;
+    }
+
 
     /**
      * @return {@code true} if propagators are sorted wrt their priority on initial activation.
@@ -330,14 +355,13 @@ public class Settings {
 
 
     /**
-     * Creates a default search strategy for the input model
+     * Set default search strategy for the input model
      *
      * @param model a model requiring a default search strategy
-     * @return a default search strategy for model
      * @see Search#defaultSearch(Model)
      */
-    public AbstractStrategy<?> makeDefaultSearch(Model model) {
-        return defaultSearch.apply(model);
+    public void makeDefaultSearch(Model model) {
+        defaultSearch.accept(model);
     }
 
     /**
@@ -346,7 +370,7 @@ public class Settings {
      * @param defaultSearch what default search strategy should be
      * @return the current instance
      */
-    public Settings setDefaultSearch(Function<Model, AbstractStrategy<?>> defaultSearch) {
+    public Settings setDefaultSearch(Consumer<Model> defaultSearch) {
         this.defaultSearch = defaultSearch;
         return this;
     }
@@ -749,8 +773,8 @@ public class Settings {
         return ibexRestoreRounding;
     }
 
-    public Object get(String key) {
-        return additionalSettings.get(key);
+    public Optional<Object> get(String key) {
+        return Optional.ofNullable(additionalSettings.get(key));
     }
 
     public Settings set(String key, Object value) {

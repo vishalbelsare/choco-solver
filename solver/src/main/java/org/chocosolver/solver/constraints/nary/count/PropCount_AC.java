@@ -1,7 +1,7 @@
 /*
  * This file is part of choco-solver, http://choco-solver.org/
  *
- * Copyright (c) 2022, IMT Atlantique. All rights reserved.
+ * Copyright (c) 2024, IMT Atlantique. All rights reserved.
  *
  * Licensed under the BSD 4-clause license.
  *
@@ -72,11 +72,11 @@ public class PropCount_AC extends Propagator<IntVar> {
         for (; i < Math.min(4, vars.length-1); i++) {
             st.append(vars[i].getName()).append(", ");
         }
-        if (i < vars.length - 2) {
+        if (i < vars.length - 1) {
             st.append("..., ");
         }
         st.append("limit=").append(vars[vars.length - 1].getName());
-	    st.append(", value=").append(value).append(')');
+        st.append(", value=").append(value).append(')');
         return st.toString();
     }
 
@@ -112,15 +112,17 @@ public class PropCount_AC extends Propagator<IntVar> {
             if (possibles.contains(varIdx)) {
                 if (!vars[varIdx].contains(value)) {
                     possibles.remove(varIdx);
-                    filter();
+                    forcePropagate(PropagatorEventType.CUSTOM_PROPAGATION);
                 } else if (vars[varIdx].isInstantiated()) {
                     possibles.remove(varIdx);
                     mandatories.add(varIdx);
-                    filter();
+                    forcePropagate(PropagatorEventType.CUSTOM_PROPAGATION);
+                } else if (!vars[varIdx].hasEnumeratedDomain() && (vars[varIdx].getLB() == value || vars[varIdx].getUB() == value)) {
+                    forcePropagate(PropagatorEventType.CUSTOM_PROPAGATION);
                 }
             }
         } else {
-            filter();
+            forcePropagate(PropagatorEventType.CUSTOM_PROPAGATION);
         }
     }
 

@@ -1,7 +1,7 @@
 /*
  * This file is part of choco-solver, http://choco-solver.org/
  *
- * Copyright (c) 2022, IMT Atlantique. All rights reserved.
+ * Copyright (c) 2024, IMT Atlantique. All rights reserved.
  *
  * Licensed under the BSD 4-clause license.
  *
@@ -12,12 +12,12 @@ package org.chocosolver.solver.constraints.nary.sum;
 import gnu.trove.map.hash.TIntIntHashMap;
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.constraints.Constraint;
-import org.chocosolver.solver.constraints.ConstraintsName;
 import org.chocosolver.solver.constraints.Operator;
 import org.chocosolver.solver.constraints.extension.TuplesFactory;
 import org.chocosolver.solver.constraints.ternary.PropXplusYeqZ;
 import org.chocosolver.solver.exception.SolverException;
 import org.chocosolver.solver.variables.IntVar;
+import org.chocosolver.solver.variables.view.integer.IntAffineView;
 import org.chocosolver.util.tools.VariableUtils;
 
 import java.util.Arrays;
@@ -114,6 +114,15 @@ public class IntLinCombFactory {
                 RESULT -= (long)NVARS[i].getValue() * NCOEFFS[i]; // potential overflow
                 NCOEFFS[i] = 0;
             } else if (NCOEFFS[i] != 0) {
+                if(NVARS[i] instanceof IntAffineView){
+                    IntAffineView<?> view = (IntAffineView<?>) NVARS[i];
+                    IntVar var = view.getVariable();
+                    int a = view.a * (view.p ? 1 : -1);
+                    long b = view.b;
+                    RESULT -= b * NCOEFFS[i];
+                    NVARS[i] = var;
+                    NCOEFFS[i] *= a;
+                }
                 int id = NVARS[i].getId();
                 int pos = map.get(id);
                 if (pos == -1) {
@@ -244,19 +253,19 @@ public class IntLinCombFactory {
                     // deal with X + Y = Z
                     if ((COEFFS[0] == 1 && COEFFS[1] == 1 && COEFFS[2] == -1)
                             || (COEFFS[0] == -1 && COEFFS[1] == -1 && COEFFS[2] == 1)) {
-                        return new Constraint(ConstraintsName.SUM,
+                        return new SumConstraint(
                                 new PropXplusYeqZ(VARS[0], VARS[1], VARS[2]));
                     }
                     // deal with X + Z  = Y
                     if ((COEFFS[0] == 1 && COEFFS[1] == -1 && COEFFS[2] == 1)
                             || (COEFFS[0] == -1 && COEFFS[1] == 1 && COEFFS[2] == -1)) {
-                        return new Constraint(ConstraintsName.SUM,
+                        return new SumConstraint(
                                 new PropXplusYeqZ(VARS[0], VARS[2], VARS[1]));
                     }
                     // deal with Y + Z  = X
                     if ((COEFFS[0] == -1 && COEFFS[1] == 1 && COEFFS[2] == 1)
                             || (COEFFS[0] == 1 && COEFFS[1] == -1 && COEFFS[2] == -1)) {
-                        return new Constraint(ConstraintsName.SUM,
+                        return new SumConstraint(
                                 new PropXplusYeqZ(VARS[1], VARS[2], VARS[0]));
                     }
                 }

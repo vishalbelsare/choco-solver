@@ -1,7 +1,7 @@
 /*
  * This file is part of choco-solver, http://choco-solver.org/
  *
- * Copyright (c) 2022, IMT Atlantique. All rights reserved.
+ * Copyright (c) 2024, IMT Atlantique. All rights reserved.
  *
  * Licensed under the BSD 4-clause license.
  *
@@ -39,11 +39,6 @@ public class GephiGenerator extends SearchViz {
         this.instance = gexfFile;
         this.nodes = new StringBuilder();
         this.edges = new StringBuilder();
-    }
-
-    @Override
-    protected boolean connect(String label) {
-        return true;
     }
 
     @Override

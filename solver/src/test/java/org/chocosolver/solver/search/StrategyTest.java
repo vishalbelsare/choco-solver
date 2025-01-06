@@ -1,7 +1,7 @@
 /*
  * This file is part of choco-solver, http://choco-solver.org/
  *
- * Copyright (c) 2022, IMT Atlantique. All rights reserved.
+ * Copyright (c) 2024, IMT Atlantique. All rights reserved.
  *
  * Licensed under the BSD 4-clause license.
  *
@@ -125,7 +125,7 @@ public class StrategyTest {
         IntVar[] v = {x};
         model.getSolver().setSearch(Search.greedySearch(Search.inputOrderLBSearch(v)));
         model.getSolver().solve();
-        Assert.assertTrue(x.getValue() == 1);
+        assertEquals(x.getValue(), 1);
     }
 
     @Test(groups="1s", timeOut=60000)
@@ -362,7 +362,7 @@ public class StrategyTest {
 			Model model = ProblemMaker.makeGolombRuler(8);
 			{
 				Solver s = model.getSolver();
-				s.setSearch(Search.defaultSearch(model));
+				Search.defaultSearch(model);
 				while (s.solve()) ;
 			}
 			Model modelBound = ProblemMaker.makeGolombRuler(8);

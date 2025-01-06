@@ -1,7 +1,7 @@
 /*
  * This file is part of choco-solver, http://choco-solver.org/
  *
- * Copyright (c) 2022, IMT Atlantique. All rights reserved.
+ * Copyright (c) 2024, IMT Atlantique. All rights reserved.
  *
  * Licensed under the BSD 4-clause license.
  *
@@ -1258,5 +1258,23 @@ public class RealTest {
         Assert.assertEquals(y2.getUB(), 100.0, precision);
         Assert.assertEquals(x2.getLB(), 0.5, precision);
         Assert.assertEquals(x2.getUB(), 0.5, precision);
+    }
+
+    @Test(groups = "1s")
+    public void testElement() {
+        Model model = new Model();
+        RealVar x = model.realVar("V", 0., 2., 1.e-4);
+        IntVar y = model.intVar("I", 0, 1);
+        model.element(x, new double[]{3.0, 7.0}, y).post();
+        model.getSolver().findSolution();
+    }
+    
+    @Test(groups = "1s")
+    public void testElement2() {
+        Model model = new Model();
+        RealVar x = model.realVar("V", 8., 10., 1.e-4);
+        IntVar y = model.intVar("I", 0, 1);
+        model.element(x, new double[]{3.0, 7.0}, y).post();
+        model.getSolver().findSolution();
     }
 }

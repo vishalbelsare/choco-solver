@@ -1,7 +1,7 @@
 /*
  * This file is part of choco-solver, http://choco-solver.org/
  *
- * Copyright (c) 2022, IMT Atlantique. All rights reserved.
+ * Copyright (c) 2024, IMT Atlantique. All rights reserved.
  *
  * Licensed under the BSD 4-clause license.
  *
@@ -115,17 +115,6 @@ public class Set_Std_BitSet extends AbstractSet implements ISet.WithOffset {
 	public int max() {
 		if(isEmpty()) throw new IllegalStateException("cannot find maximum of an empty set");
 		return offset+ values.prevSetBit(values.length());
-	}
-
-	@Override
-	public String toString() {
-		StringBuilder st = new StringBuilder("{");
-                ISetIterator iter = newIterator();
-                while (iter.hasNext()) {
-			st.append(iter.nextInt()).append(", ");
-		}
-		st.append("}");
-		return st.toString().replace(", }","}");
 	}
 
 	//***********************************************************************************

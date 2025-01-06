@@ -1,7 +1,7 @@
 /*
  * This file is part of choco-solver, http://choco-solver.org/
  *
- * Copyright (c) 2022, IMT Atlantique. All rights reserved.
+ * Copyright (c) 2024, IMT Atlantique. All rights reserved.
  *
  * Licensed under the BSD 4-clause license.
  *
@@ -27,8 +27,6 @@ import org.chocosolver.util.ESat;
 
 import java.util.Arrays;
 import java.util.HashMap;
-
-import static org.chocosolver.solver.variables.events.IntEventType.*;
 
 public class SetTimes extends Propagator<IntVar> implements VariableSelector<IntVar>, IMonitorUpBranch {
     private final Task[] tasks;
@@ -88,7 +86,7 @@ public class SetTimes extends Propagator<IntVar> implements VariableSelector<Int
 
     @Override
     public int getPropagationConditions(int vIdx) {
-        return IntEventType.combine(INCLOW, INSTANTIATE);
+        return IntEventType.lowerBoundAndInst();
     }
 
     @Override

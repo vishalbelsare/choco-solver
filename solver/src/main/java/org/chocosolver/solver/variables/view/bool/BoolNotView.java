@@ -1,7 +1,7 @@
 /*
  * This file is part of choco-solver, http://choco-solver.org/
  *
- * Copyright (c) 2022, IMT Atlantique. All rights reserved.
+ * Copyright (c) 2024, IMT Atlantique. All rights reserved.
  *
  * Licensed under the BSD 4-clause license.
  *
@@ -128,7 +128,8 @@ public final class BoolNotView<B extends BoolVar> extends IntView<B> implements 
         } else {
             if (lb == 1) {
                 hasChanged = instantiateTo(1, cause);
-            } else if (ub == 0) {
+            }
+            if (ub == 0) {
                 hasChanged = instantiateTo(0, cause);
             }
         }
@@ -146,7 +147,11 @@ public final class BoolNotView<B extends BoolVar> extends IntView<B> implements 
     }
 
     @Override
-    public int getValue() {
+    public int getValue() throws IllegalStateException{
+        if(!isInstantiated()){
+            throw new IllegalStateException("getValue() can be only called on instantiated variable. " +
+                    name + " is not instantiated");
+        }
         int v = var.getValue();
         return 1 - v;
     }
@@ -223,7 +228,7 @@ public final class BoolNotView<B extends BoolVar> extends IntView<B> implements 
     }
 
     @Override
-    protected EvtScheduler createScheduler() {
+    protected EvtScheduler<IntEventType> createScheduler() {
         return new BoolEvtScheduler();
     }
 

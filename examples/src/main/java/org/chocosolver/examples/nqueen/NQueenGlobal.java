@@ -1,7 +1,7 @@
 /*
  * This file is part of examples, http://choco-solver.org/
  *
- * Copyright (c) 2022, IMT Atlantique. All rights reserved.
+ * Copyright (c) 2024, IMT Atlantique. All rights reserved.
  *
  * Licensed under the BSD 4-clause license.
  *
@@ -32,8 +32,8 @@ public class NQueenGlobal extends AbstractNQueen {
 
         for (int i = 0; i < n; i++) {
             vars[i] = model.intVar("Q_" + i, 1, n, false);
-            diag1[i] = model.intOffsetView(vars[i], i);
-            diag2[i] = model.intOffsetView(vars[i], -i);
+            diag1[i] = model.offset(vars[i], i);
+            diag2[i] = model.offset(vars[i], -i);
         }
 
         model.allDifferent(vars, "BC").post();

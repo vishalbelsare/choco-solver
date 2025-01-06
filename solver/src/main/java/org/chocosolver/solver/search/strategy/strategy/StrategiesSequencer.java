@@ -1,7 +1,7 @@
 /*
  * This file is part of choco-solver, http://choco-solver.org/
  *
- * Copyright (c) 2022, IMT Atlantique. All rights reserved.
+ * Copyright (c) 2024, IMT Atlantique. All rights reserved.
  *
  * Licensed under the BSD 4-clause license.
  *
@@ -22,7 +22,7 @@ import org.chocosolver.util.tools.ArrayUtils;
  * calls the delegate <code>getDecision()</code> method.
  * <br/>
  * A <code>AbstractStrategy</code> becomes "inactive" when no more decision can be computed,
- * ie every decisions have been computed and used.
+ * ie every decision has been computed and used.
  * <br/>
  *
  * @author Charles Prud'homme
@@ -36,17 +36,15 @@ public class StrategiesSequencer<U extends Variable> extends AbstractStrategy<U>
     private final IStateInt index;
 
     @SuppressWarnings("unchecked")
-    @SafeVarargs
-    private static <V extends Variable> V[] make(AbstractStrategy<V>... strategies) {
+    private static <V extends Variable> V[] make(AbstractStrategy<V>[] strategies) {
         V[] vars = strategies[0].vars.clone();
         for (int i = 1; i < strategies.length; i++) {
             vars = ArrayUtils.append(vars, strategies[i].vars);
         }
         return vars;
     }
-
-    @SafeVarargs
-    public StrategiesSequencer(IEnvironment environment, AbstractStrategy<U>... strategies) {
+    
+    public StrategiesSequencer(IEnvironment environment, AbstractStrategy<U>[] strategies) {
         super(make(strategies));
         index = environment.makeInt(0);
         this.strategies = strategies;
@@ -128,5 +126,13 @@ public class StrategiesSequencer<U extends Variable> extends AbstractStrategy<U>
             st.append("\t").append(strategies[i].toString()).append("\n");
         }
         return st.toString();
+    }
+
+    /**
+     * Return the sub-strategies of <code>this</code>.
+     * @return the sub-strategies of <code>this</code>.
+     */
+    public AbstractStrategy<U>[] getStrategies() {
+        return strategies;
     }
 }

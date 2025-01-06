@@ -1,7 +1,7 @@
 /*
  * This file is part of choco-solver, http://choco-solver.org/
  *
- * Copyright (c) 2022, IMT Atlantique. All rights reserved.
+ * Copyright (c) 2024, IMT Atlantique. All rights reserved.
  *
  * Licensed under the BSD 4-clause license.
  *
@@ -9,12 +9,16 @@
  */
 package org.chocosolver.solver.constraints;
 
+import org.chocosolver.solver.ISelf;
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.constraints.set.*;
 import org.chocosolver.solver.variables.BoolVar;
 import org.chocosolver.solver.variables.IntVar;
 import org.chocosolver.solver.variables.SetVar;
+import org.chocosolver.util.objects.setDataStructures.iterable.IntIterableRangeSet;
 import org.chocosolver.util.tools.ArrayUtils;
+
+import java.util.Arrays;
 
 /**
  * Interface to make constraints over SetVar
@@ -24,7 +28,7 @@ import org.chocosolver.util.tools.ArrayUtils;
  * @author Jean-Guillaume FAGES
  * @since 4.0.0
  */
-public interface ISetConstraintFactory {
+public interface ISetConstraintFactory extends ISelf<Model> {
 
     //***********************************************************************************
     // BASICS : union/inter/subset/card
@@ -58,21 +62,28 @@ public interface ISetConstraintFactory {
     /**
      * Creates a constraint which ensures that the union of <i>sets_i</i>, where <i>i</i> in <i>indices</i>,
      * is equal to <i>unionSet</i>.
+     * <br/>
+     *   U = \cup_{i \in I} S_{i - o}
+     * </p>
+     * where U is <i>unionSet</i>, I is <i>indices</i>, o is <i>iOffset</i> and S is <i>sets</i>.
      *
      * @param unionSet set variable representing the union of <i>sets</i>
-     * @param vOffset value offset
      * @param indices  set variable representing the indices of selected variables in <i>sets</i>
-     * @param iOffset index offset
+     * @param iOffset  index offset
      * @param sets     an array of set variables
      * @return A constraint ensuring that the <i>indices-</i>union of <i>sets</i> is equal to <i>unionSet</i>
      */
-    default Constraint union(SetVar unionSet, int vOffset, SetVar indices, int iOffset, SetVar[] sets) {
-        return new Constraint(ConstraintsName.SETUNION, new PropUnionVar(unionSet, vOffset, indices, iOffset, sets));
+    default Constraint union(SetVar unionSet, SetVar indices, int iOffset, SetVar[] sets) {
+        return new Constraint(ConstraintsName.SETUNION, new PropUnionVar(unionSet, indices, iOffset, sets));
     }
 
     /**
      * Creates a constraint which ensures that the union of <i>sets_i</i>, where <i>i</i> in <i>indices</i>,
      * is equal to <i>unionSet</i>.
+     * <br/>
+     *   U = \cup_{i \in I} S_{i}
+     * </p>
+     * where U is <i>unionSet</i>, I is <i>indices</i> and S is <i>sets</i>.
      *
      * @param unionSet set variable representing the union of <i>sets</i>
      * @param indices  set variable representing the indices of selected variables in <i>sets</i>
@@ -80,7 +91,7 @@ public interface ISetConstraintFactory {
      * @return A constraint ensuring that the <i>indices-</i>union of <i>sets</i> is equal to <i>unionSet</i>
      */
     default Constraint union(SetVar unionSet, SetVar indices, SetVar[] sets) {
-        return union(unionSet, 0, indices, 0, sets);
+        return union(unionSet, indices, 0, sets);
     }
 
     /**
@@ -101,6 +112,7 @@ public interface ISetConstraintFactory {
      * @param intersectionSet a set variable representing the intersection of <i>sets</i>
      * @param boundConsistent adds an additional propagator to guarantee BC
      * @return A constraint ensuring that the intersection of <i>sets</i> is equal to <i>intersectionSet</i>
+     * @throws IllegalArgumentException when the array of variables is either null or empty.
      */
     default Constraint intersection(SetVar[] sets, SetVar intersectionSet, boolean boundConsistent) {
         if (sets.length == 0) {
@@ -122,9 +134,14 @@ public interface ISetConstraintFactory {
      *
      * @param sets an array of set variables
      * @return A constraint which ensures that <i>sets</i>[i] is a subset of <i>sets</i>[j] if i<j
+     * @throws IllegalArgumentException when the array of variables is either null or empty.
      */
     default Constraint subsetEq(SetVar... sets) {
-        Propagator[] props = new Propagator[sets.length - 1];
+        if (sets == null || sets.length == 0) {
+            throw new IllegalArgumentException("The array of variables cannot be null or empty");
+        }
+        if (sets.length == 1) return ref().trueConstraint();
+        Propagator<?>[] props = new Propagator[sets.length - 1];
         for (int i = 0; i < sets.length - 1; i++) {
             props[i] = new PropSubsetEq(sets[i], sets[i + 1]);
         }
@@ -140,7 +157,7 @@ public interface ISetConstraintFactory {
      * @return A constraint ensuring that |{s in <i>sets</i> where |s|=0}| = <i>nbEmpty</i>
      */
     default Constraint nbEmpty(SetVar[] sets, int nbEmpty) {
-        return nbEmpty(sets, sets[0].getModel().intVar(nbEmpty));
+        return nbEmpty(sets, ref().intVar(nbEmpty));
     }
 
     /**
@@ -367,6 +384,19 @@ public interface ISetConstraintFactory {
         );
     }
 
+    /**
+     * Channeling constraint stating that int[i] = v + offset, where v is the ith element of the sorted elements of set.
+     * If <i>i</i> is out of bounds with set, int[i] = nullValue.
+     * @param set A set variable.
+     * @param ints An array of integer variables.
+     * @param nullValue An int.
+     * @param offset An int.
+     * @return A sortedSetIntsChanneling constraint.
+     */
+    default Constraint sortedSetIntsChanneling(SetVar set, IntVar[] ints, int nullValue, int offset) {
+        return new Constraint(ConstraintsName.SETORDEREDINTCHANNELING, new PropSortedIntChannel(set, ints, nullValue, offset));
+    }
+
     //***********************************************************************************
     // MINIZINC API
     //***********************************************************************************
@@ -389,8 +419,13 @@ public interface ISetConstraintFactory {
      *
      * @param sets an array of disjoint set variables
      * @return a constraint ensuring that <i>sets</i> are all disjoint (empty intersection)
+     * @throws IllegalArgumentException when the array of variables is either null or empty.
      */
     default Constraint allDisjoint(SetVar... sets) {
+        if (sets == null || sets.length == 0) {
+            throw new IllegalArgumentException("The array of variables cannot be null or empty");
+        }
+        if (sets.length == 1) return ref().trueConstraint();
         return new Constraint(ConstraintsName.SETALLDISJOINT, new PropAllDisjoint(sets));
     }
 
@@ -400,8 +435,13 @@ public interface ISetConstraintFactory {
      *
      * @param sets an array of different set variables
      * @return a constraint ensuring that <i>sets</i> are all different
+     * @throws IllegalArgumentException when the array of variables is either null or empty.
      */
     default Constraint allDifferent(SetVar... sets) {
+        if (sets == null || sets.length == 0) {
+            throw new IllegalArgumentException("The array of variables cannot be null or empty");
+        }
+        if (sets.length == 1) return ref().trueConstraint();
         return new Constraint(ConstraintsName.SETALLDIFFERENT, new PropAllDiff(sets),
                 new PropAllDiff(sets), new PropAtMost1Empty(sets)
         );
@@ -412,8 +452,13 @@ public interface ISetConstraintFactory {
      *
      * @param sets an array of set variables to be equal
      * @return a constraint ensuring that all sets in <i>sets</i> are equal
+     * @throws IllegalArgumentException when the array of variables is either null or empty.
      */
     default Constraint allEqual(SetVar... sets) {
+        if (sets == null || sets.length == 0) {
+            throw new IllegalArgumentException("The array of variables cannot be null or empty");
+        }
+        if (sets.length == 1) return ref().trueConstraint();
         return new Constraint(ConstraintsName.SETALLEQUAL, new PropAllEqual(sets));
     }
 
@@ -459,8 +504,13 @@ public interface ISetConstraintFactory {
      *
      * @param sets an array of set variables
      * @return a constraint ensuring that x in <i>sets</i>[y] <=> y in <i>sets</i>[x]
+     * @throws IllegalArgumentException when the array of variables is either null or empty.
      */
     default Constraint symmetric(SetVar... sets) {
+        if (sets == null || sets.length == 0) {
+            throw new IllegalArgumentException("The array of variables cannot be null or empty");
+        }
+        if (sets.length == 1) return ref().trueConstraint();
         return symmetric(sets, 0);
     }
 
@@ -515,7 +565,7 @@ public interface ISetConstraintFactory {
      * @return a constraint ensuring that <i>set</i> belongs to <i>sets</i>
      */
     default Constraint member(SetVar[] sets, SetVar set) {
-        IntVar index = set.getModel().intVar("idx_tmp", 0, sets.length - 1, false);
+        IntVar index = ref().intVar("idx_tmp", 0, sets.length - 1, false);
         return element(index, sets, 0, set);
     }
 
@@ -571,9 +621,8 @@ public interface ISetConstraintFactory {
         } else {
             IntVar integer = intVar;
             if (!intVar.hasEnumeratedDomain()) {
-                Model s = intVar.getModel();
-                integer = s.intVar("enumViewOf(" + intVar.getName() + ")", intVar.getLB(), intVar.getUB(), false);
-                s.arithm(integer, "=", intVar).post();
+                integer = ref().intVar("enumViewOf(" + intVar.getName() + ")", intVar.getLB(), intVar.getUB(), false);
+                ref().arithm(integer, "=", intVar).post();
             }
             return new Constraint(ConstraintsName.SETNOTMEMBER,
                     new PropNotMemberIntSet(integer, set),
@@ -600,5 +649,73 @@ public interface ISetConstraintFactory {
                 return member(cst, set);
             }
         };
+    }
+
+    /**
+     * Creates a "less or equal" constraint stating that the constant <i>a</i> &#8828; <i>b</i>.
+     * <p>Lexicographic order of the sorted lists of elements.
+     *
+     * @param a a SetVar
+     * @param b a SetVar
+     * @return a constraint ensuring that <i>a</i> and <i>b</i> are lexicographically ordered.
+     * @implSpec This is based on {@link org.chocosolver.solver.variables.IViewFactory#setBoolsView(SetVar, int, int)}
+     * and {@link IIntConstraintFactory#lexLessEq(IntVar[], IntVar[])}
+     */
+    default Constraint setLe(final SetVar a, final SetVar b) {
+        IntIterableRangeSet union = new IntIterableRangeSet();
+        for (int v : a.getUB()) {
+            union.add(v);
+        }
+        for (int v : b.getUB()) {
+            union.add(v);
+        }
+        int size = union.size();
+        int min = union.min();
+        int offset = 0;
+        if (min <= 0) {
+            offset = 1 - min;
+        }
+        int finalOffset = offset;
+        int[] ubA = Arrays.stream(a.getUB().toArray()).map(i -> i + finalOffset).toArray();
+        int[] ubB = Arrays.stream(b.getUB().toArray()).map(i -> i + finalOffset).toArray();
+        IntVar[] intsA = ref().intVarArray(size, ArrayUtils.concat(ubA, 0));
+        IntVar[] intsB = ref().intVarArray(size, ArrayUtils.concat(ubB, 0));
+        ref().sortedSetIntsChanneling(a, intsA, 0, offset).post();
+        ref().sortedSetIntsChanneling(b, intsB, 0, offset).post();
+        return ref().lexLessEq(intsA, intsB);
+    }
+
+    /**
+     * Creates a "strictly less" constraint stating that the constant <i>a</i> &#8826; <i>b</i>.
+     * <p>Lexicographic order of the sorted lists of elements.
+     *
+     * @param a a SetVar
+     * @param b a SetVar
+     * @return a constraint ensuring that <i>a</i> and <i>b</i> are lexicographically ordered.
+     * @implSpec This is based on {@link org.chocosolver.solver.variables.IViewFactory#setBoolsView(SetVar, int, int)}
+     * and {@link IIntConstraintFactory#lexLess(IntVar[], IntVar[])}
+     */
+    default Constraint setLt(final SetVar a, final SetVar b) {
+        IntIterableRangeSet union = new IntIterableRangeSet();
+        for (int v : a.getUB()) {
+            union.add(v);
+        }
+        for (int v : b.getUB()) {
+            union.add(v);
+        }
+        int size = union.size();
+        int min = union.min();
+        int offset = 0;
+        if (min <= 0) {
+            offset = 1 - min;
+        }
+        int finalOffset = offset;
+        int[] ubA = Arrays.stream(a.getUB().toArray()).map(i -> i + finalOffset).toArray();
+        int[] ubB = Arrays.stream(b.getUB().toArray()).map(i -> i + finalOffset).toArray();
+        IntVar[] intsA = ref().intVarArray(size, ArrayUtils.concat(ubA, 0));
+        IntVar[] intsB = ref().intVarArray(size, ArrayUtils.concat(ubB, 0));
+        ref().sortedSetIntsChanneling(a, intsA, 0, offset).post();
+        ref().sortedSetIntsChanneling(b, intsB, 0, offset).post();
+        return ref().lexLess(intsA, intsB);
     }
 }

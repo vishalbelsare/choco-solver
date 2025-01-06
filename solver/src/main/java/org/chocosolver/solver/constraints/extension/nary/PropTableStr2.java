@@ -1,7 +1,7 @@
 /*
  * This file is part of choco-solver, http://choco-solver.org/
  *
- * Copyright (c) 2022, IMT Atlantique. All rights reserved.
+ * Copyright (c) 2024, IMT Atlantique. All rights reserved.
  *
  * Licensed under the BSD 4-clause license.
  *
@@ -119,7 +119,7 @@ public class PropTableStr2 extends Propagator<IntVar> {
 
     private boolean is_tuple_supported(int tuple_index) {
         for (int i = 0; i < sval.size(); i++) {
-            Str2_var v  = sval.get(i);
+            Str2_var v = sval.get(i);
             if (table[tuple_index][v.index] != star &&
                     !v.var.contains(table[tuple_index][v.index])) {
                 return false;
@@ -222,12 +222,34 @@ public class PropTableStr2 extends Propagator<IntVar> {
         }
 
         private void remove_unsupported_value(ICause cause) throws ContradictionException {
-            for (int val = var.getLB(); cnt > 0 && val <= var.getUB(); val = var.nextValue(val)) {
-                if (!ac.get(val - offset)) {
-                    var.removeValue(val, cause);
-                    cnt--;
+            if (var.hasEnumeratedDomain()) {
+                for (int val = var.getLB(); cnt > 0 && val <= var.getUB(); val = var.nextValue(val)) {
+                    if (!ac.get(val - offset)) {
+                        var.removeValue(val, cause);
+                        cnt--;
+                    }
+                }
+            } else {
+                int val = var.getLB();
+                while (cnt > 0 && val <= var.getUB()) {
+                    if (!ac.get(val - offset)) {
+                        if (var.removeValue(val, cause)) {
+                            cnt--;
+                        } else break;
+                    }
+                    val = var.nextValue(val);
+                }
+                val = var.getUB();
+                while (cnt > 0 && val >= var.getLB()) {
+                    if (!ac.get(val - offset)) {
+                        if (var.removeValue(val, cause)) {
+                            cnt--;
+                        } else break;
+                    }
+                    val = var.previousValue(val);
                 }
             }
+
         }
     }
 }

@@ -1,7 +1,7 @@
 /*
  * This file is part of choco-solver, http://choco-solver.org/
  *
- * Copyright (c) 2022, IMT Atlantique. All rights reserved.
+ * Copyright (c) 2024, IMT Atlantique. All rights reserved.
  *
  * Licensed under the BSD 4-clause license.
  *
@@ -253,7 +253,8 @@ public class BoolVarImpl extends AbstractVariable implements BoolVar {
         } else {
             if (lb == kTRUE) {
                 hasChanged = instantiateTo(kTRUE, cause);
-            } else if (ub == kFALSE) {
+            }
+            if (ub == kFALSE) {
                 hasChanged = instantiateTo(kFALSE, cause);
             }
         }
@@ -278,14 +279,12 @@ public class BoolVarImpl extends AbstractVariable implements BoolVar {
         return aValue == kFALSE || aValue == kTRUE;
     }
 
-    /**
-     * Retrieves the current value of the variable if instantiated, otherwier the lower bound.
-     *
-     * @return the current value (or lower bound if not yet instantiated).
-     */
     @Override
-    public int getValue() {
-        assert isInstantiated() : name + " not instantiated";
+    public int getValue() throws IllegalStateException{
+        if (!isInstantiated()) {
+            throw new IllegalStateException("getValue() can be only called on instantiated variable. " +
+                    name + " is not instantiated");
+        }
         return getLB();
     }
 
